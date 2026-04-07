@@ -1,41 +1,46 @@
 name: Unity Build CI
 
 on:
-  workflow_dispatch: {}   # 수동 실행 버튼
-  push:
-    branches:
-      - main
-      - develop
-  pull_request:
-    branches:
-      - main
+  workflow_dispatch:
+    inputs:
+      targetPlatform:
+        description: '빌드할 플랫폼 선택'
+        required: true
+        default: 'StandaloneWindows64'
+        type: choice
+        options:
+          - StandaloneWindows64
+          - StandaloneOSX
+          - Android
+          - WebGL
+      branch:
+        description: '빌드할 브랜치 선택'
+        required: true
+        default: 'main'
+        type: choice
+        options:
+          - main
+          - develop
 
 jobs:
   build:
-    name: 🔨 Build (${{ matrix.targetPlatform }})
+    name: 🔨 Build (${{ github.event.inputs.targetPlatform }}) on ${{ github.event.inputs.branch }}
     runs-on: ubuntu-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        targetPlatform:
-          - StandaloneWindows64   # Windows
-          - StandaloneOSX         # Mac
-          - Android               # 안드로이드
 
     steps:
       - name: 📥 코드 체크아웃
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.inputs.branch }}
           lfs: true
 
       - name: 💾 Library 캐시
         uses: actions/cache@v3
         with:
           path: Library
-          key: Library-${{ matrix.targetPlatform }}-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          key: Library-${{ github.event.inputs.targetPlatform }}-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
           restore-keys: |
-            Library-${{ matrix.targetPlatform }}-
+            Library-${{ github.event.inputs.targetPlatform }}-
             Library-
 
       - name: 🔨 Unity 빌드
@@ -45,11 +50,11 @@ jobs:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
-          targetPlatform: ${{ matrix.targetPlatform }}
+          targetPlatform: ${{ github.event.inputs.targetPlatform }}
 
       - name: 📦 빌드 결과물 업로드
         uses: actions/upload-artifact@v4
         with:
-          name: Build-${{ matrix.targetPlatform }}
-          path: build/${{ matrix.targetPlatform }}
+          name: Build-${{ github.event.inputs.targetPlatform }}-${{ github.event.inputs.branch }}
+          path: build/${{ github.event.inputs.targetPlatform }}
           retention-days: 14
