@@ -33,6 +33,7 @@ jobs:
         with:
           ref: ${{ github.event.inputs.branch }}
           lfs: true
+          fetch-depth: 0
 
       - name: 💾 Library 캐시
         uses: actions/cache@v3
@@ -51,7 +52,7 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           targetPlatform: ${{ github.event.inputs.targetPlatform }}
-          projectPath: . 
+          projectPath: ${{ github.workspace }}
 
       - name: 📦 빌드 결과물 업로드
         uses: actions/upload-artifact@v4
