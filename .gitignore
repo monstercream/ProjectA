@@ -4,3 +4,7 @@ ProjectA/Temp
 Library
 Logs
 Temp
+UserSettings
+ProjectSettings
+*.csproj
+ProjectA.sln
