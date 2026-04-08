@@ -38,7 +38,7 @@ jobs:
       - name: 💾 Library 캐시
         uses: actions/cache@v3
         with:
-          path: Library
+          path: ProjectA/Library
           key: Library-${{ github.event.inputs.targetPlatform }}-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
           restore-keys: |
             Library-${{ github.event.inputs.targetPlatform }}-
