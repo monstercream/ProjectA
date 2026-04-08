@@ -8,3 +8,4 @@ UserSettings
 *.csproj
 ProjectA.sln
 Assets/Resources
+.idea
