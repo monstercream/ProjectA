@@ -39,7 +39,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ProjectA/Library
-          key: Library-${{ github.event.inputs.targetPlatform }}-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          key: Library-${{ github.event.inputs.targetPlatform }}-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectA/ProjectSettings/**') }}
           restore-keys: |
             Library-${{ github.event.inputs.targetPlatform }}-
             Library-
@@ -51,8 +51,8 @@ jobs:
           echo "=== 루트 파일 목록 ==="
           ls -la
           echo "=== ProjectSettings 확인 ==="
-          ls -la ProjectSettings/ || echo "ProjectSettings 폴더 없음"
-          cat ProjectSettings/ProjectVersion.txt || echo "파일 없음"
+          ls -la ProjectA/ProjectSettings/ || echo "ProjectSettings 폴더 없음"
+          cat ProjectA/ProjectSettings/ProjectVersion.txt || echo "파일 없음"
 
       - name: 🔨 Unity 빌드
         uses: game-ci/unity-builder@v4
