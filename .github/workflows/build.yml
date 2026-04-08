@@ -39,20 +39,19 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ProjectA/Library
-          key: Library-${{ github.event.inputs.targetPlatform }}-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectA/ProjectSettings/**') }}
+          key: Library-${{ github.event.inputs.targetPlatform }}-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
           restore-keys: |
             Library-${{ github.event.inputs.targetPlatform }}-
             Library-
-
+            
       - name: 🔍 프로젝트 구조 확인
         run: |
           echo "=== 현재 위치 ==="
           pwd
+          echo "=== 전체 구조 (2depth) ==="
+          find . -maxdepth 3 -name "ProjectVersion.txt"
           echo "=== 루트 파일 목록 ==="
           ls -la
-          echo "=== ProjectSettings 확인 ==="
-          ls -la ProjectSettings/ || echo "ProjectSettings 폴더 없음"
-          cat ProjectSettings/ProjectVersion.txt || echo "파일 없음"
 
       - name: 🔨 Unity 빌드
         uses: game-ci/unity-builder@v4
