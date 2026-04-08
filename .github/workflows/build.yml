@@ -44,15 +44,6 @@ jobs:
             Library-${{ github.event.inputs.targetPlatform }}-
             Library-
             
-      - name: 🔍 프로젝트 구조 확인
-        run: |
-          echo "=== 현재 위치 ==="
-          pwd
-          echo "=== 전체 구조 (2depth) ==="
-          find . -maxdepth 3 -name "ProjectVersion.txt"
-          echo "=== 루트 파일 목록 ==="
-          ls -la
-
       - name: 🔨 Unity 빌드
         uses: game-ci/unity-builder@v4
         env:
