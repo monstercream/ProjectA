@@ -43,7 +43,7 @@ jobs:
             Library-${{ github.event.inputs.targetPlatform }}-
             Library-
 
-      - name: 🔨 Unity 빌드
+          - name: 🔨 Unity 빌드
         uses: game-ci/unity-builder@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
@@ -51,6 +51,7 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           targetPlatform: ${{ github.event.inputs.targetPlatform }}
+          projectPath: .
 
       - name: 📦 빌드 결과물 업로드
         uses: actions/upload-artifact@v4
