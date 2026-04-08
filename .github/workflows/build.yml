@@ -51,6 +51,7 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           targetPlatform: ${{ github.event.inputs.targetPlatform }}
+          projectPath: .
 
       - name: 📦 빌드 결과물 업로드
         uses: actions/upload-artifact@v4
