@@ -819,6 +819,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ac8e9cda1c0ed407ea67bf48b91acd13, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LoadingView
+  loadingText: {fileID: 8408991395594476473}
   loadingSlider: {fileID: 8032303475538039989}
   smoothSpeed: 5
 --- !u!1 &8182755041489189094

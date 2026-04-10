@@ -1,7 +1,5 @@
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
-using JsonModel;
 using Sirenix.Utilities;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -35,25 +33,22 @@ public class InitController : MonoBehaviour
         dataManager = SystemsManager.Get<IDataManager>();
         loading = SystemsManager.Get<ILoadingSystem>();
         jsonDatas.ForEach(json => { dataManager.SetData(json.name, json.text); });
-
         loading.Show();
 
-        loading.Show();
-        loading.SetValue(0);
-        await networkSystem.Login("7789B", "42779113-0012-58F2-939B-0870AFAE582E");
-        loading.SetValue(30);
-        await networkSystem.ExecuteScript("Test");
-        loading.SetValue(60);
-        await networkSystem.TitleData();
-        loading.SetValue(70);
-        await networkSystem.UserData();
-        loading.SetValue(80);
-        await networkSystem.Inventory();
-        loading.SetValue(100);
+        var tasks = new (Func<Task> action, string label)[]
+        {
+            (() => networkSystem.Login("7789B", "42779113-0012-58F2-939B-0870AFAE582E"), "로그인 중..."),
+            (() => networkSystem.ExecuteScript("Test"), "스크립트 실행 중..."),
+            (() => networkSystem.TitleData(), "타이틀 데이터 로드 중..."),
+            (() => networkSystem.UserData(), "유저 데이터 로드 중..."),
+            (() => networkSystem.Inventory(), "인벤토리 로드 중..."),
+        };
 
-        Dictionary<string, CharacterModel> dic = dataManager.GetDataDictionary<CharacterModel>("character");
-        dic.ForEach(c => { Debug.LogWarning(c.Value.Name); });
-        CharacterModel model = dataManager.GetData<CharacterModel>("character", "character_1");
-        Debug.LogWarning(model.Name);
+        for (int i = 0; i < tasks.Length; i++)
+        {
+            Debug.Log(tasks[i].label);
+            await tasks[i].action();
+            loading.SetValue((float)(i + 1) / tasks.Length * 100f);
+        }
     }
 }
