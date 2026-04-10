@@ -1,4 +1,7 @@
 public interface ILoadingSystem : ISystem
 {
-    public void ExecuteCloudScript(string functionName, object functionParameter);
+    public void SetValue(float value);
+    public void Show();
+    public void Hide();
+
 }

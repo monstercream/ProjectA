@@ -1,10 +1,22 @@
 public class LoadingSystem : ILoadingSystem
 {
-    public void Dispose()
+    const string VIEW_NAME = "LoadingView";
+    
+    
+
+    public void SetValue(float value)
     {
     }
 
-    public void ExecuteCloudScript(string functionName, object functionParameter)
+    public void Show()
+    {
+    }
+
+    public void Hide()
+    {
+    }
+
+    public void Dispose()
     {
     }
 }

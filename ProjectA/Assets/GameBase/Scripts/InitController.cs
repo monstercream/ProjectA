@@ -12,6 +12,7 @@ public class InitController : MonoBehaviour
     [SerializeField] private string[] jsonURL;
     private INetworkSystem networkSystem;
     private IDataManager dataManager;
+    private ILoadingSystem loading;
 
     private async Task<string> LoadJsonFromURL(string url)
     {
@@ -32,7 +33,10 @@ public class InitController : MonoBehaviour
         await SystemsManager.Initialize();
         networkSystem = SystemsManager.Get<INetworkSystem>();
         dataManager = SystemsManager.Get<IDataManager>();
+        loading = SystemsManager.Get<ILoadingSystem>();
         jsonDatas.ForEach(json => { dataManager.SetData(json.name, json.text); });
+
+        loading.Show();
 
         await networkSystem.Login("7789B", "42779113-0012-58F2-939B-0870AFAE582E");
         await networkSystem.ExecuteScript("Test");
