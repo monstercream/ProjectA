@@ -38,6 +38,7 @@ public class InitController : MonoBehaviour
         await networkSystem.ExecuteScript("Test");
         await networkSystem.TitleData();
         await networkSystem.UserData();
+        await networkSystem.Inventory();
         
         Dictionary<string, CharacterModel> dic = dataManager.GetDataDictionary<CharacterModel>("character");
         dic.ForEach(c => { Debug.LogWarning(c.Value.Name); });
