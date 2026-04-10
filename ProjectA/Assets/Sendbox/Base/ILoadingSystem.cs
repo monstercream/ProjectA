@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 public interface ILoadingSystem : ISystem
 {
     public void SetValue(float value);

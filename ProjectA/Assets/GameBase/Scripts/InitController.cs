@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Sirenix.Utilities;
 using UnityEngine;
@@ -33,22 +34,32 @@ public class InitController : MonoBehaviour
         dataManager = SystemsManager.Get<IDataManager>();
         loading = SystemsManager.Get<ILoadingSystem>();
         jsonDatas.ForEach(json => { dataManager.SetData(json.name, json.text); });
-        loading.Show();
 
-        var tasks = new (Func<Task> action, string label)[]
+        var tasks = new (Func<Task> action, string label, bool countProgress)[]
         {
-            (() => networkSystem.Login("7789B", "42779113-0012-58F2-939B-0870AFAE582E"), "로그인 중..."),
-            (() => networkSystem.ExecuteScript("Test"), "스크립트 실행 중..."),
-            (() => networkSystem.TitleData(), "타이틀 데이터 로드 중..."),
-            (() => networkSystem.UserData(), "유저 데이터 로드 중..."),
-            (() => networkSystem.Inventory(), "인벤토리 로드 중..."),
+            (() => { loading.Show(); return Task.CompletedTask; }, "로딩 시작...", false),
+            (() => networkSystem.Login("7789B", "42779113-0012-58F2-939B-0870AFAE582E"), "로그인 중...", true),
+            (() => networkSystem.ExecuteScript("Test"), "스크립트 실행 중...", true),
+            (() => networkSystem.TitleData(), "타이틀 데이터 로드 중...", true),
+            (() => networkSystem.UserData(), "유저 데이터 로드 중...", true),
+            (() => networkSystem.Inventory(), "인벤토리 로드 중...", true),
+            (() => { LobbyView.View.Show(); return Task.CompletedTask; },"로비 여는중...",true),
+            (() => { loading.Hide(); return Task.CompletedTask; }, "로딩 완료!", false),
         };
 
-        for (int i = 0; i < tasks.Length; i++)
+        int totalCount = tasks.Count(t => t.countProgress);
+        int doneCount = 0;
+
+        foreach (var task in tasks)
         {
-            Debug.Log(tasks[i].label);
-            await tasks[i].action();
-            loading.SetValue((float)(i + 1) / tasks.Length * 100f);
+            Debug.Log(task.label);
+            await task.action();
+
+            if (task.countProgress)
+            {
+                doneCount++;
+                loading.SetValue((float)doneCount / totalCount * 100f);
+            }
         }
     }
 }
