@@ -355144,6 +355144,59 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1876283370}
   m_CullTransparentMesh: 0
+--- !u!1 &1877044813
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1877044815}
+  - component: {fileID: 1877044814}
+  m_Layer: 0
+  m_Name: InitController
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1877044814
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1877044813}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74093e2d09bd247c9bec5570f0f13129, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InitController
+  jsonDatas:
+  - {fileID: 4900000, guid: ce22a7ca5c5c248399e70336e143ae07, type: 3}
+  - {fileID: 4900000, guid: 14f67e9eec3d04d27a4adb0762baf670, type: 3}
+  - {fileID: 4900000, guid: 553f2910e3f2f45a48d1834d4c69d136, type: 3}
+  - {fileID: 4900000, guid: 4500580db33a942b3a3d9badce9a0be0, type: 3}
+  - {fileID: 4900000, guid: 732ac9f8ed7c94b69be3788219e408e6, type: 3}
+  - {fileID: 4900000, guid: a5916f4f281164927a9ca6d0833c9ed5, type: 3}
+  - {fileID: 4900000, guid: 26f3e04a51ffd40ce8dcd23510037f10, type: 3}
+  jsonURL: []
+--- !u!4 &1877044815
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1877044813}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0, y: -0, z: -0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1877696146
 GameObject:
   m_ObjectHideFlags: 0
@@ -371102,7 +371155,7 @@ MonoBehaviour:
   m_BlockingObjects: 0
   m_BlockingMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 55
 --- !u!114 &1966052539
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -455367,3 +455420,4 @@ SceneRoots:
   - {fileID: 1310576957}
   - {fileID: 519420032}
   - {fileID: 1966052537}
+  - {fileID: 1877044815}

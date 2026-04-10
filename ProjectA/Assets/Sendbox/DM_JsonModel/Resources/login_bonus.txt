@@ -1,0 +1,72 @@
+{
+    "day_1": {
+        "image": "CO",
+        "day": 1,
+        "bundleKey": "login_bonus_1"
+    },
+    "day_2": {
+        "image": "CO",
+        "day": 2,
+        "bundleKey": "login_bonus_2"
+    },
+    "day_3": {
+        "image": "CO",
+        "day": 3,
+        "bundleKey": "login_bonus_3"
+    },
+    "day_4": {
+        "image": "ST",
+        "day": 4,
+        "bundleKey": "login_bonus_4"
+    },
+    "day_5": {
+        "image": "CO",
+        "day": 5,
+        "bundleKey": "login_bonus_5"
+    },
+    "day_6": {
+        "image": "ST",
+        "day": 6,
+        "bundleKey": "login_bonus_6"
+    },
+    "day_7": {
+        "image": "CR",
+        "day": 7,
+        "bundleKey": "login_bonus_7"
+    },
+    "day_8": {
+        "image": "CO",
+        "day": 8,
+        "bundleKey": "login_bonus_1"
+    },
+    "day_9": {
+        "image": "CO",
+        "day": 9,
+        "bundleKey": "login_bonus_2"
+    },
+    "day_10": {
+        "image": "CO",
+        "day": 10,
+        "bundleKey": "login_bonus_3"
+    },
+    "day_11": {
+        "image": "ST",
+        "day": 11,
+        "bundleKey": "login_bonus_4"
+    },
+    "day_12": {
+        "image": "CO",
+        "day": 12,
+        "bundleKey": "login_bonus_5"
+    },
+    "day_13": {
+        "image": "ST",
+        "day": 13,
+        "bundleKey": "login_bonus_6"
+    },
+    "day_14": {
+        "image": "CR",
+        "day": 14,
+        "bundleKey": "login_bonus_7"
+    }
+}
