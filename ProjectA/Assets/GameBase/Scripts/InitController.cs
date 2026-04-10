@@ -38,23 +38,22 @@ public class InitController : MonoBehaviour
 
         loading.Show();
 
+        loading.Show();
+        loading.SetValue(0);
         await networkSystem.Login("7789B", "42779113-0012-58F2-939B-0870AFAE582E");
+        loading.SetValue(30);
         await networkSystem.ExecuteScript("Test");
+        loading.SetValue(60);
         await networkSystem.TitleData();
+        loading.SetValue(70);
         await networkSystem.UserData();
+        loading.SetValue(80);
         await networkSystem.Inventory();
-        
+        loading.SetValue(100);
+
         Dictionary<string, CharacterModel> dic = dataManager.GetDataDictionary<CharacterModel>("character");
         dic.ForEach(c => { Debug.LogWarning(c.Value.Name); });
         CharacterModel model = dataManager.GetData<CharacterModel>("character", "character_1");
         Debug.LogWarning(model.Name);
-    }
-
-    private void OnGUI()
-    {
-        if (GUI.Button(new Rect(0, 0, 100, 100), "GetData"))
-        {
-            Debug.LogWarning("DATA");
-        }
     }
 }

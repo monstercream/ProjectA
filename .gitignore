@@ -10,3 +10,4 @@ ProjectA.sln
 Assets/Resources
 .idea
 ProjectA/obj
+*.user
