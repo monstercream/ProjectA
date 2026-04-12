@@ -779,4 +779,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LoadingView
   loadingText: {fileID: 3497794625861392416}
   loadingSlider: {fileID: 3116611636049221420}
-  smoothSpeed: 5
+  smoothSpeed: 50

@@ -38,6 +38,13 @@ public class InitController : MonoBehaviour
         lobbyView = ViewManager.Get<ILobbyView>();
         jsonDatas.ForEach(json => { dataManager.SetData(json.name, json.text); });
 
+        // 로딩 완료 시 실행할 액션 등록
+        loadingView.SetOnCompleteAction(() =>
+        {
+            lobbyView.Display();
+            loadingView.Hide();
+        });
+
         var tasks = new (Func<Task> action, string label, bool countProgress)[]
         {
             (() => { loadingView.Display(); return Task.CompletedTask; }, "로딩 시작...", false),
@@ -46,8 +53,6 @@ public class InitController : MonoBehaviour
             (() => networkSystem.TitleData(), "타이틀 데이터 로드 중...", true),
             (() => networkSystem.UserData(), "유저 데이터 로드 중...", true),
             (() => networkSystem.Inventory(), "인벤토리 로드 중...", true),
-            (() => { lobbyView.Display(); return Task.CompletedTask; },"로비 여는중...",true),
-            (() => { loadingView.Hide(); return Task.CompletedTask; }, "로딩 완료!", false),
         };
 
         int totalCount = tasks.Count(t => t.countProgress);
