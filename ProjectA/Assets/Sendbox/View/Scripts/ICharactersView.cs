@@ -1,0 +1,4 @@
+
+public interface ICharactersView : IView
+{
+}

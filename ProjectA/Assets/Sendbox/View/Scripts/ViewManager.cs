@@ -40,6 +40,11 @@ public static class ViewManager
         Register<ILobbyView, LobbyView>();
         Register<ILoadingView, LoadingView>();
         Register<ISystemPopupView, SystemPopupView>();
+        Register<IInventoryView, InventoryView>();
+        Register<IShopView, ShopView>();
+        Register<ISkillView, SkillView>();
+        Register<ICharactersView, CharactersView>();
+        Register<IOptionView, OptionView>();
     }
 
     private static void Register<TInterface, TConcrete>()
