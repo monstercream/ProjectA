@@ -14,19 +14,17 @@ namespace System
 			if (!isInitialized)
 			{
 				CreateSystems();
-				//await LoadSystemsAsync();
 				isInitialized = true;
 			}
 		}
 
 		private static void CreateSystems()
 		{
-			RegisterMainSystem<INetworkSystem>(new NetworkSystem());
-			RegisterMainSystem<ILoadingSystem>(new LoadingSystem());
-			RegisterMainSystem<IDataManager>(new DataManager());
+			Register<INetworkSystem>(new NetworkSystem());
+			Register<IDataManager>(new DataManager());
 		}
 
-		private static void RegisterMainSystem<T>(ISystem system) where T : ISystem
+		private static void Register<T>(ISystem system) where T : ISystem
 		{
 			systems[typeof(T)] = system;
 		}

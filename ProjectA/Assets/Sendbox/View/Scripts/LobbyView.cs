@@ -1,19 +1,12 @@
 using UnityEngine;
 
-public class NewLobbyView : ILobbyView
+public class LobbyView : MonoBehaviour, ILobbyView
 {
+    public void Display() => gameObject.SetActive(true);
+    public void Hide() => gameObject.SetActive(false);
+
     public void Dispose()
     {
-        throw new System.NotImplementedException();
-    }
-
-    public void Display()
-    {
-        throw new System.NotImplementedException();
-    }
-
-    public void Hide()
-    {
-        throw new System.NotImplementedException();
+        Destroy(gameObject);
     }
 }

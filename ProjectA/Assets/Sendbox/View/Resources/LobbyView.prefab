@@ -1460,7 +1460,7 @@ GameObject:
   - component: {fileID: 5027997068037900261}
   - component: {fileID: 2480077838011743884}
   - component: {fileID: 3169749624741886216}
-  - component: {fileID: -5852755368840049121}
+  - component: {fileID: -1061857753023192379}
   m_Layer: 0
   m_Name: LobbyView
   m_TagString: Untagged
@@ -1578,7 +1578,7 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
---- !u!114 &-5852755368840049121
+--- !u!114 &-1061857753023192379
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1587,7 +1587,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 676955635413407592}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ee13a0814867e4020b7c37c5d7f43cca, type: 3}
+  m_Script: {fileID: 11500000, guid: c473a04d350ad42598d34cbc80960dfb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LobbyView
 --- !u!1 &679510654220676766

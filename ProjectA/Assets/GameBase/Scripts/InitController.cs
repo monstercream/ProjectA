@@ -11,7 +11,8 @@ public class InitController : MonoBehaviour
     [SerializeField] private string[] jsonURL;
     private INetworkSystem networkSystem;
     private IDataManager dataManager;
-    private ILoadingSystem loading;
+    private ILobbyView lobbyView;
+    private ILoadingView loadingView;
 
     private async Task<string> LoadJsonFromURL(string url)
     {
@@ -30,21 +31,23 @@ public class InitController : MonoBehaviour
     private async void Awake()
     {
         await SystemsManager.Initialize();
+        await ViewManager.Initialize();
         networkSystem = SystemsManager.Get<INetworkSystem>();
         dataManager = SystemsManager.Get<IDataManager>();
-        loading = SystemsManager.Get<ILoadingSystem>();
+        loadingView = ViewManager.Get<ILoadingView>();
+        lobbyView = ViewManager.Get<ILobbyView>();
         jsonDatas.ForEach(json => { dataManager.SetData(json.name, json.text); });
 
         var tasks = new (Func<Task> action, string label, bool countProgress)[]
         {
-            (() => { loading.Show(); return Task.CompletedTask; }, "로딩 시작...", false),
+            (() => { loadingView.Display(); return Task.CompletedTask; }, "로딩 시작...", false),
             (() => networkSystem.Login("7789B", "42779113-0012-58F2-939B-0870AFAE582E"), "로그인 중...", true),
             (() => networkSystem.ExecuteScript("Test"), "스크립트 실행 중...", true),
             (() => networkSystem.TitleData(), "타이틀 데이터 로드 중...", true),
             (() => networkSystem.UserData(), "유저 데이터 로드 중...", true),
             (() => networkSystem.Inventory(), "인벤토리 로드 중...", true),
-            (() => { LobbyView.View.Show(); return Task.CompletedTask; },"로비 여는중...",true),
-            (() => { loading.Hide(); return Task.CompletedTask; }, "로딩 완료!", false),
+            (() => { lobbyView.Display(); return Task.CompletedTask; },"로비 여는중...",true),
+            (() => { loadingView.Hide(); return Task.CompletedTask; }, "로딩 완료!", false),
         };
 
         int totalCount = tasks.Count(t => t.countProgress);
@@ -58,7 +61,7 @@ public class InitController : MonoBehaviour
             if (task.countProgress)
             {
                 doneCount++;
-                loading.SetValue((float)doneCount / totalCount * 100f);
+                loadingView.SetValue((float)doneCount / totalCount * 100f);
             }
         }
     }

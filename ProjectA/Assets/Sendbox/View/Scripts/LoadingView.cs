@@ -1,22 +1,13 @@
-using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 
-public class LoadingView : BaseView<LoadingView>
+public class LoadingView : MonoBehaviour, ILoadingView
 {
     [SerializeField] private TMP_Text loadingText;
     [SerializeField] private Slider loadingSlider;
     [SerializeField] private float smoothSpeed = 5f;
-
-    protected override string ViewName { get; }
-
-    public void SetValue(float value)
-    {
-        View?.SetLoading(value);
-    }
-
 
     private float targetValue;
 
@@ -29,15 +20,22 @@ public class LoadingView : BaseView<LoadingView>
         }
     }
 
-    public async Task WaitUntilFull()
+    public void Dispose()
     {
-        while (!Mathf.Approximately(loadingSlider.value, targetValue))
-        {
-            await Task.Yield();
-        }
+        throw new System.NotImplementedException();
     }
 
-    public void SetLoading(float value)
+    public void Display()
+    {
+        gameObject.SetActive(true);
+    }
+
+    public void Hide()
+    {
+        gameObject.SetActive(false);
+    }
+
+    public void SetValue(float value)
     {
         targetValue = value;
     }
