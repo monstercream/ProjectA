@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using Sirenix.OdinInspector;
 
 public class DataManager : IDataManager
@@ -8,8 +9,7 @@ public class DataManager : IDataManager
 
     public Dictionary<string, T> GetDataDictionary<T>(string title)
     {
-        return null;
-        //return JsonConvert.DeserializeObject<Dictionary<string, T>>(jsonDatas[title]);
+        return JsonConvert.DeserializeObject<Dictionary<string, T>>(jsonDatas[title]);
     }
 
     public T GetData<T>(string title, string id)
