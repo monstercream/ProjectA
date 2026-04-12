@@ -16,7 +16,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &2122647371757421851
 RectTransform:
   m_ObjectHideFlags: 0
@@ -53,6 +53,8 @@ MonoBehaviour:
   titleText: {fileID: 2459505715894441830}
   messageText: {fileID: 8042549559827404945}
   confirmButton: {fileID: 3515979824616533301}
+  animDuration: 0.4
+  slideDistance: 1000
 --- !u!1 &2272349840529916702
 GameObject:
   m_ObjectHideFlags: 0
@@ -876,7 +878,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 0.08235294, g: 0.08235294, b: 0.08235294, a: 0.9019608}
+  m_Color: {r: 0.08235294, g: 0.08235294, b: 0.08235294, a: 0}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
