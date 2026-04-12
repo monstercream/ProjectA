@@ -9,14 +9,14 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2122647371757421851}
-  - component: {fileID: 163385105820691848}
+  - component: {fileID: 5801901133659566066}
   m_Layer: 0
-  m_Name: Popup_ErrorNetwork
+  m_Name: SystemPopupView
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &2122647371757421851
 RectTransform:
   m_ObjectHideFlags: 0
@@ -38,7 +38,7 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &163385105820691848
+--- !u!114 &5801901133659566066
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -47,11 +47,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 331842647703627007}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 99cf42140c3104393ba145bec6abebb6, type: 3}
+  m_Script: {fileID: 11500000, guid: 5513044335b70452eb941bc057f882ea, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: 
-  otherPanels:
-  - {fileID: 0}
+  m_EditorClassIdentifier: Assembly-CSharp::SystemPopupView
+  titleText: {fileID: 2459505715894441830}
+  messageText: {fileID: 8042549559827404945}
+  confirmButton: {fileID: 3515979824616533301}
 --- !u!1 &2272349840529916702
 GameObject:
   m_ObjectHideFlags: 0
@@ -139,7 +140,7 @@ GameObject:
   - component: {fileID: 8537190381953250798}
   - component: {fileID: 2459505715894441830}
   m_Layer: 0
-  m_Name: Text
+  m_Name: Title
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

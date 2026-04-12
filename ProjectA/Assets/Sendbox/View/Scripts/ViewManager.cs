@@ -6,21 +6,40 @@ using System.Threading.Tasks;
 public static class ViewManager
 {
     private static bool isInitialized;
-
+    private static Canvas rootCanvas;
     private static readonly Dictionary<Type, MonoBehaviour> instances = new();
 
     public static async Task Initialize()
     {
         if (isInitialized) return;
 
+        CreateRootCanvas();
         CreateViews();
         isInitialized = true;
+    }
+
+    private static void CreateRootCanvas()
+    {
+        var canvasObject = new GameObject("ViewManager_Canvas");
+        GameObject.DontDestroyOnLoad(canvasObject);
+
+        rootCanvas = canvasObject.AddComponent<Canvas>();
+        rootCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        rootCanvas.sortingOrder = 0;
+
+        var scaler = canvasObject.AddComponent<UnityEngine.UI.CanvasScaler>();
+        scaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(2560, 1440);
+        scaler.matchWidthOrHeight = 0.5f;
+
+        canvasObject.AddComponent<UnityEngine.UI.GraphicRaycaster>();
     }
 
     private static void CreateViews()
     {
         Register<ILobbyView, LobbyView>();
         Register<ILoadingView, LoadingView>();
+        Register<ISystemPopupView, SystemPopupView>();
     }
 
     private static void Register<TInterface, TConcrete>()
@@ -43,10 +62,19 @@ public static class ViewManager
             return;
         }
 
-        var instance = GameObject.Instantiate(prefab);
-        GameObject.DontDestroyOnLoad(instance);
-        instance.Hide();
+        var instance = GameObject.Instantiate(prefab, rootCanvas.transform);
 
+        // RectTransform을 캔버스에 꽉 차게 설정
+        var rect = instance.GetComponent<RectTransform>();
+        if (rect != null)
+        {
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+        }
+
+        instance.Hide();
         instances[interfaceType] = instance;
     }
 
@@ -72,6 +100,11 @@ public static class ViewManager
         }
 
         instances.Clear();
+
+        if (rootCanvas != null)
+            GameObject.Destroy(rootCanvas.gameObject);
+
+        rootCanvas = null;
         isInitialized = false;
     }
 }
