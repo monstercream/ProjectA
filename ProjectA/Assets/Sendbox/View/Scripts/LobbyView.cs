@@ -37,6 +37,7 @@ public class LobbyView : MonoBehaviour, ILobbyView
         skillButton.onClick.AddListener(skillView.Display);
         charactersButton.onClick.AddListener(charactersView.Display);
         optionButton.onClick.AddListener(optionView.Display);
+        battleButton.onClick.AddListener(() => {Hide();});
         
         systemPopupView.Initialize("Notice", "Test");
         systemPopupView.Display();
