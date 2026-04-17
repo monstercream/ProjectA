@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: c6afb405c2484a54485db2248427fd0d
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 204830
+  packageName: 'DRIVE: Low Poly Cars'
+  packageVersion: 2.0
+  assetPath: Assets/MENA - Low Poly Cars/Selector/Scripts/PSControl.cs
+  uploadId: 523031

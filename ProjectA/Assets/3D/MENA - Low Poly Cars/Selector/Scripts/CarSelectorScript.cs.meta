@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 37f88328b19a1d441a670a858686b0e8
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 204830
+  packageName: 'DRIVE: Low Poly Cars'
+  packageVersion: 2.0
+  assetPath: Assets/MENA - Low Poly Cars/Selector/Scripts/CarSelectorScript.cs
+  uploadId: 523031
