@@ -59,7 +59,10 @@ public class StageSelectionView : MonoBehaviour, IStageSelectionView
     private async void OnClickedListItem(StageModel model)
     {
         GameObject stage = await addressableManager.InstantiateAsync(model.PrefabPath);
-        GameObject car = await addressableManager.InstantiateAsync("Car",model.StartPosition.ToVector3(), Quaternion.Euler(model.StartRotation.ToVector3()));
+        GameObject car = await addressableManager.InstantiateAsync("Car", model.StartPosition.ToVector3(),
+            Quaternion.Euler(model.StartRotation.ToVector3()));
+        GameObject miniMap = await addressableManager.InstantiateAsync("MiniMap");
+        miniMap.GetComponent<MinimapSystem>().SetTarget(car.transform);
         Hide();
     }
 }
