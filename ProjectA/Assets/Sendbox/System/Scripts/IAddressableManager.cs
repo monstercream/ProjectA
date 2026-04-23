@@ -15,6 +15,8 @@ public interface IAddressableManager : ISystem
 
     // 프리팹 인스턴스화
     public Task<GameObject> InstantiateAsync(string key, Transform parent = null);
+    // Interface 수정
+    public Task<GameObject> InstantiateAsync(string key, Vector3 position, Quaternion rotation, Transform parent = null);
 
     // 핸들 해제
     public void Release(string key);

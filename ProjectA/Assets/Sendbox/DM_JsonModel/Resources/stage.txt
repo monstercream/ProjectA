@@ -3,24 +3,28 @@
             "name": "Stage 1",
             "prefab_path": "StagePrefab_1",
             "image_path": "Stage_1",
-            "start_position": { "x": -51.0, "y": 1.0, "z": -30.0 }
+            "start_position": { "x": -51.0, "y": 1.0, "z": -30.0 },
+            "start_rotation": { "x": 0.0, "y": 90.0, "z": 0.0 }
         },
         "stage_2": {
             "name": "Stage 2",
             "prefab_path": "StagePrefab_2",
             "image_path": "Stage_2",
-            "start_position": { "x": -51.0, "y": 1.0, "z": -30.0 }
+            "start_position": { "x": -51.0, "y": 1.0, "z": -30.0 },
+            "start_rotation": { "x": 0.0, "y": 90.0, "z": 0.0 }
         },
         "stage_3": {
             "name": "Stage 3",
             "prefab_path": "StagePrefab_3",
             "image_path": "Stage_3",
-            "start_position": { "x": -51.0, "y": 1.0, "z": -30.0 }
+            "start_position": { "x": -51.0, "y": 1.0, "z": -30.0 },
+            "start_rotation": { "x": 0.0, "y": 90.0, "z": 0.0 }
         },
         "stage_4": {
             "name": "Stage 4",
             "prefab_path": "StagePrefab_4",
             "image_path": "Stage_4",
-            "start_position": { "x": -51.0, "y": 1.0, "z": -30.0 }
+            "start_position": { "x": -51.0, "y": 1.0, "z": -30.0 },
+            "start_rotation": { "x": 0.0, "y": 90.0, "z": 0.0 }
         }               
 }

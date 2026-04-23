@@ -105,6 +105,22 @@ public class AddressableManager : IAddressableManager
         Debug.LogError($"[AddressableManager] Instantiate failed: '{key}'. Error: {handle.OperationException?.Message}");
         return null;
     }
+    // Class 수정
+    public async Task<GameObject> InstantiateAsync(string key, Vector3 position, Quaternion rotation, Transform parent = null)
+    {
+        var handle = Addressables.InstantiateAsync(key, position, rotation, parent);
+        await handle.Task;
+
+        if (handle.Status == AsyncOperationStatus.Succeeded)
+        {
+            _handles[key] = handle;
+            Debug.Log($"[AddressableManager] Instantiated: '{key}' at {position}");
+            return handle.Result;
+        }
+
+        Debug.LogError($"[AddressableManager] Instantiate failed: '{key}'");
+        return null;
+    }
 
     // ─── 단일 해제 ───────────────────────────────────────────
     public void Release(string key)
