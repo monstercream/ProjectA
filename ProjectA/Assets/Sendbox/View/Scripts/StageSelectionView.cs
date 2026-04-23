@@ -56,11 +56,14 @@ public class StageSelectionView : MonoBehaviour, IStageSelectionView
         }
     }
 
-    private void OnClickedListItem(StageModel model)
+    private async void OnClickedListItem(StageModel model)
     {
         Debug.Log(model.Name);
-        addressableManager.InstantiateAsync(model.PrefabPath, null);
-        addressableManager.InstantiateAsync("Car");
+        GameObject stage = await addressableManager.InstantiateAsync(model.PrefabPath, null);
+        GameObject car = await addressableManager.InstantiateAsync("Car");
+        
+        Debug.Log(model.StartPosition.ToVector3().ToString());
+        car.transform.position = model.StartPosition.ToVector3();
         Hide();
     }
 }
