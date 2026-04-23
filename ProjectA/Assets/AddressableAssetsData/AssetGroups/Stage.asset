@@ -27,6 +27,11 @@ MonoBehaviour:
     m_SerializedLabels:
     - default
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6f15eae9594104cd5a7d82308623280f
+    m_Address: StagePrefab_2
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 7b2a7b844b1a94833a8834d1ebc253aa
     m_Address: Stage_5
     m_ReadOnly: 0
@@ -38,6 +43,16 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels:
     - default
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c220e5e1096d0446188351843c3bba87
+    m_Address: StagePrefab_3
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: cfc6ea819c85941ac9046f1371180cdc
+    m_Address: StagePrefab_4
+    m_ReadOnly: 0
+    m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: ddcb60f37634c4dc0be7f845031e212b
     m_Address: Stage_1
