@@ -59,5 +59,8 @@ public class StageSelectionView : MonoBehaviour, IStageSelectionView
     private void OnClickedListItem(StageModel model)
     {
         Debug.Log(model.Name);
+        addressableManager.InstantiateAsync(model.PrefabPath, null);
+        addressableManager.InstantiateAsync("Car");
+        Hide();
     }
 }
