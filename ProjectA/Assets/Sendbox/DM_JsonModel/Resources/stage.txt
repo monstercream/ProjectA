@@ -1,22 +1,22 @@
 {
         "stage_1": {
             "name": "Stage 1",
-            "prefab_path": "stage_1"
+            "prefab_path": "stage_1",
             "image_path": "Stage_1"
         },
         "stage_2": {
             "name": "Stage 2",
-            "prefab_path": "stage_2"
+            "prefab_path": "stage_2",
             "image_path": "Stage_2"
         },
         "stage_3": {
             "name": "Stage 3",
-            "prefab_path": "stage_3"
+            "prefab_path": "stage_3",
             "image_path": "Stage_3"
         },
         "stage_4": {
             "name": "Stage 4",
-            "prefab_path": "stage_4"
+            "prefab_path": "stage_4",
             "image_path": "Stage_4"
         }               
 }

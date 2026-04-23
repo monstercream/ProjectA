@@ -13,6 +13,7 @@ public class StageSelectionView : MonoBehaviour, IStageSelectionView
     private ILobbyView lobbyView;
     private IDataManager dataManager;
     private Dictionary<string, StageModel> stageModels;
+    private IAddressableManager addressableManager;
 
     public void Dispose()
     {
@@ -34,6 +35,7 @@ public class StageSelectionView : MonoBehaviour, IStageSelectionView
         Debug.Log("StageSelectionView Start");
         lobbyView = ViewManager.Get<ILobbyView>();
         dataManager = SystemsManager.Get<IDataManager>();
+        addressableManager = SystemsManager.Get<IAddressableManager>();
         stageModels = dataManager.GetDataDictionary<StageModel>("stage");
 
         backButton.onClick.AddListener(() =>
@@ -50,7 +52,7 @@ public class StageSelectionView : MonoBehaviour, IStageSelectionView
         foreach (var model in models)
         {
             var item = Instantiate(stageSelectionListItem, content);
-            item.Display(model.Value, OnClickedListItem);
+            item.Display(addressableManager, model.Value, OnClickedListItem);
         }
     }
 

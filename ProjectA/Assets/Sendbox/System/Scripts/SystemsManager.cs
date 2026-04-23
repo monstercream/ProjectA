@@ -22,6 +22,7 @@ namespace System
 		{
 			Register<INetworkSystem>(new NetworkSystem());
 			Register<IDataManager>(new DataManager());
+			Register<IAddressableManager>(new AddressableManager());
 		}
 
 		private static void Register<T>(ISystem system) where T : ISystem
@@ -41,6 +42,7 @@ namespace System
 		{
 			Get<IDataManager>().Dispose();
 			Get<INetworkSystem>().Dispose();
+			Get<IAddressableManager>().Dispose();
 
 			systems.Clear();
 		}
