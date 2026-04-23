@@ -10,44 +10,39 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
-  m_Name: Stage
+  m_Name: StagePrefab
   m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
-  m_GroupName: Stage
-  m_GUID: 2dd180305f77743f887b8325f9d28bbe
+  m_GroupName: StagePrefab
+  m_GUID: c08fb1f1f280e4c8eb9e67e6bc89b9a3
   m_SerializeEntries:
-  - m_GUID: 2b609ae6b127f49928e220aa20df32b6
-    m_Address: Stage_4
+  - m_GUID: 2277b09d9a397486b9509a6e5258bc54
+    m_Address: StagePrefab_4
     m_ReadOnly: 0
-    m_SerializedLabels:
-    - default
+    m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 51979418e23554d739ff6fb9d67d3de8
-    m_Address: Stage_3
+  - m_GUID: 27c7b3e74461645868501000475d5ba6
+    m_Address: StagePrefab_3
     m_ReadOnly: 0
-    m_SerializedLabels:
-    - default
+    m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 7b2a7b844b1a94833a8834d1ebc253aa
-    m_Address: Stage_5
+  - m_GUID: 797381a58fb40486596c0a75bc098093
+    m_Address: StagePrefab_1
     m_ReadOnly: 0
-    m_SerializedLabels:
-    - default
+    m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 9f4dc27f488b541b18d1f1eaaa9e213b
-    m_Address: Stage_2
+  - m_GUID: 7e451a604113e4404a173f135e0bb771
+    m_Address: StagePrefab_5
     m_ReadOnly: 0
-    m_SerializedLabels:
-    - default
+    m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: ddcb60f37634c4dc0be7f845031e212b
-    m_Address: Stage_1
+  - m_GUID: bb043997814b14f4c942695ef29d47c5
+    m_Address: StagePrefab_2
     m_ReadOnly: 0
-    m_SerializedLabels:
-    - default
+    m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: 518b7ef43e01843b8be518b9fcef1b75, type: 2}
   m_SchemaSet:
     m_Schemas:
-    - {fileID: 11400000, guid: d2e29518bc1f045f3a0f6ae5dcecaf31, type: 2}
-    - {fileID: 11400000, guid: c7dd812c3bfd34072b43d01e940b76d6, type: 2}
+    - {fileID: 11400000, guid: fb5cbb78fd9944ea8a5d4c5f99f118cf, type: 2}
+    - {fileID: 11400000, guid: 6fa9f13e4cfe1421cb07b62f87e3692f, type: 2}
