@@ -13,6 +13,7 @@ public class StageSelectionListItem : MonoBehaviour
     public void Display(StageModel stageModel, Action<StageModel> onClicked)
     {
         gameObject.SetActive(true);
+        image.sprite = stageModel.ImagePath;
         nameText.text = stageModel.Name;
         button.onClick.AddListener(() => onClicked(stageModel));
     }

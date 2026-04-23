@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using JsonModel;
-using Sirenix.Utilities;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -36,8 +35,6 @@ public class StageSelectionView : MonoBehaviour, IStageSelectionView
         lobbyView = ViewManager.Get<ILobbyView>();
         dataManager = SystemsManager.Get<IDataManager>();
         stageModels = dataManager.GetDataDictionary<StageModel>("stage");
-
-        stageModels.ForEach(x => { Debug.LogWarning(x.Value.Name); });
 
         backButton.onClick.AddListener(() =>
         {
