@@ -19,11 +19,12 @@ public class LobbyView : MonoBehaviour, ILobbyView
     private ISkillView skillView;
     private ICharactersView charactersView;
     private IOptionView optionView;
+    private IStageSelectionView stageSelectionView;
 
     public void Display() => gameObject.SetActive(true);
     public void Hide() => gameObject.SetActive(false);
 
-    public async Task  Start()
+    public async Task Start()
     {
         systemPopupView = ViewManager.Get<ISystemPopupView>();
         inventoryView = ViewManager.Get<IInventoryView>();
@@ -31,14 +32,19 @@ public class LobbyView : MonoBehaviour, ILobbyView
         skillView = ViewManager.Get<ISkillView>();
         charactersView = ViewManager.Get<ICharactersView>();
         optionView = ViewManager.Get<IOptionView>();
-        
+        stageSelectionView = ViewManager.Get<IStageSelectionView>();
+
         inventoryButton.onClick.AddListener(inventoryView.Display);
         shopButton.onClick.AddListener(shopView.Display);
         skillButton.onClick.AddListener(skillView.Display);
         charactersButton.onClick.AddListener(charactersView.Display);
         optionButton.onClick.AddListener(optionView.Display);
-        battleButton.onClick.AddListener(() => {Hide();});
-        
+        battleButton.onClick.AddListener(() =>
+        {
+            stageSelectionView.Display();
+            Hide();
+        });
+
         systemPopupView.Initialize("Notice", "Test");
         systemPopupView.Display();
     }

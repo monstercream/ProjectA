@@ -45,6 +45,7 @@ public static class ViewManager
         Register<ISkillView, SkillView>();
         Register<ICharactersView, CharactersView>();
         Register<IOptionView, OptionView>();
+        Register<IStageSelectionView, StageSelectionView>();
     }
 
     private static void Register<TInterface, TConcrete>()

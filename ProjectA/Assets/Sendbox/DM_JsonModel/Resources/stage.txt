@@ -1,0 +1,10 @@
+{
+        "stage_1": {
+            "name": "Stage 1",
+            "path": "stage_1"
+        },
+        "stage_2": {
+            "name": "Stage 2",
+            "path": "stage_2"
+        }
+}
