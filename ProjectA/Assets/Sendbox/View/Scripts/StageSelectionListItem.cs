@@ -13,9 +13,9 @@ public class StageSelectionListItem : MonoBehaviour
 
     public async Task Display(IAddressableManager addressableManager, StageModel stageModel, Action<StageModel> onClicked)
     {
-        gameObject.SetActive(true);
         image.sprite = await addressableManager.LoadAssetAsync<Sprite>(stageModel.ImagePath);
         nameText.text = stageModel.Name;
         button.onClick.AddListener(() => onClicked(stageModel));
+        gameObject.SetActive(true);
     }
 }

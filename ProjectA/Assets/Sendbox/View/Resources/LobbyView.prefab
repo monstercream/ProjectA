@@ -12490,8 +12490,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c473a04d350ad42598d34cbc80960dfb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LobbyView
-  shopButton: {fileID: 422135795778514459}
   inventoryButton: {fileID: 107801952114461399}
+  shopButton: {fileID: 422135795778514459}
   skillButton: {fileID: 4039125552523666885}
   charactersButton: {fileID: 6341007949869694668}
   profileButton: {fileID: 4031920463745959910}

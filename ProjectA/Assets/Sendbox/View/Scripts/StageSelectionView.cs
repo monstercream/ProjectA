@@ -14,6 +14,7 @@ public class StageSelectionView : MonoBehaviour, IStageSelectionView
     private IDataManager dataManager;
     private Dictionary<string, StageModel> stageModels;
     private IAddressableManager addressableManager;
+    private IIngameView ingameView;
 
     public void Dispose()
     {
@@ -34,6 +35,7 @@ public class StageSelectionView : MonoBehaviour, IStageSelectionView
     {
         Debug.Log("StageSelectionView Start");
         lobbyView = ViewManager.Get<ILobbyView>();
+        ingameView = ViewManager.Get<IIngameView>();
         dataManager = SystemsManager.Get<IDataManager>();
         addressableManager = SystemsManager.Get<IAddressableManager>();
         stageModels = dataManager.GetDataDictionary<StageModel>("stage");
@@ -58,11 +60,8 @@ public class StageSelectionView : MonoBehaviour, IStageSelectionView
 
     private async void OnClickedListItem(StageModel model)
     {
-        GameObject stage = await addressableManager.InstantiateAsync(model.PrefabPath);
-        GameObject car = await addressableManager.InstantiateAsync("Car", model.StartPosition.ToVector3(), Quaternion.Euler(model.StartRotation.ToVector3()));
-        GameObject miniMap = await addressableManager.InstantiateAsync("MiniMap");
-        GameObject ingame = await addressableManager.InstantiateAsync("Ingame");
-        miniMap.GetComponent<MinimapSystem>().SetTarget(car.transform);
+        await ingameView.Initialize(model);
+        ingameView.Display();
         Hide();
     }
 }
