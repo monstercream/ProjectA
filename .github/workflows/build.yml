@@ -24,11 +24,53 @@ on:
 
 jobs:
   # ─────────────────────────────────────────────
+  # Addressables 콘텐츠 빌드 (모든 플랫폼 공통 선행 작업)
+  # ─────────────────────────────────────────────
+  build-addressables:
+    name: 📦 Addressables Content Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 코드 체크아웃
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+          lfs: true
+          fetch-depth: 0
+
+      - name: 💾 Library 캐시
+        uses: actions/cache@v3
+        with:
+          path: ProjectA/Library
+          key: Library-Addressables-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: |
+            Library-Addressables-
+            Library-
+
+      - name: 📦 Addressables 빌드
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: ${{ github.event.inputs.targetPlatform }}
+          projectPath: ProjectA
+          buildMethod: AddressablesBuildScript.BuildAddressables
+
+      - name: 📤 Addressables 결과물 업로드
+        uses: actions/upload-artifact@v4
+        with:
+          name: Addressables-${{ github.event.inputs.targetPlatform }}-${{ github.run_id }}
+          path: ProjectA/ServerData
+          retention-days: 3
+
+  # ─────────────────────────────────────────────
   # 기존 빌드 Job (Windows / macOS / Android / WebGL)
   # ─────────────────────────────────────────────
   build:
     name: 🔨 Build (${{ github.event.inputs.targetPlatform }}) on ${{ github.event.inputs.branch }}
     runs-on: ubuntu-latest
+    needs: build-addressables
     if: github.event.inputs.targetPlatform != 'iOS'
     steps:
       - name: 📥 코드 체크아웃
@@ -37,6 +79,12 @@ jobs:
           ref: ${{ github.event.inputs.branch }}
           lfs: true
           fetch-depth: 0
+
+      - name: 📥 Addressables 결과물 다운로드
+        uses: actions/download-artifact@v4
+        with:
+          name: Addressables-${{ github.event.inputs.targetPlatform }}-${{ github.run_id }}
+          path: ProjectA/ServerData
 
       - name: 💾 Library 캐시
         uses: actions/cache@v3
@@ -95,6 +143,7 @@ jobs:
   build-ios-unity:
     name: 🍎 [iOS 1/2] Unity → Xcode 프로젝트 생성
     runs-on: ubuntu-latest
+    needs: build-addressables
     if: github.event.inputs.targetPlatform == 'iOS'
     steps:
       - name: 📥 코드 체크아웃
@@ -103,6 +152,12 @@ jobs:
           ref: ${{ github.event.inputs.branch }}
           lfs: true
           fetch-depth: 0
+
+      - name: 📥 Addressables 결과물 다운로드
+        uses: actions/download-artifact@v4
+        with:
+          name: Addressables-${{ github.event.inputs.targetPlatform }}-${{ github.run_id }}
+          path: ProjectA/ServerData
 
       - name: 💾 Library 캐시
         uses: actions/cache@v3
@@ -122,7 +177,6 @@ jobs:
         with:
           targetPlatform: iOS
           projectPath: ProjectA
-          # iOS는 IPA가 아닌 Xcode 프로젝트를 생성함
           buildMethod: ''
 
       - name: 📦 Xcode 프로젝트 업로드 (다음 Job으로 전달)
@@ -130,7 +184,7 @@ jobs:
         with:
           name: xcode-project-${{ github.run_id }}
           path: build/iOS
-          retention-days: 1   # 중간 산출물이므로 1일만 보관
+          retention-days: 1
 
   # ─────────────────────────────────────────────
   # iOS 전용 Job - Step 2: Xcode 빌드 + 서명 + IPA 출력
@@ -139,7 +193,7 @@ jobs:
   build-ios-xcode:
     name: 🍎 [iOS 2/2] Xcode 빌드 & 서명 → IPA
     runs-on: macos-latest
-    needs: build-ios-unity          # 반드시 Step 1 완료 후 실행
+    needs: build-ios-unity
     if: github.event.inputs.targetPlatform == 'iOS'
     steps:
       - name: 📥 Xcode 프로젝트 다운로드
