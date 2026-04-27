@@ -23,6 +23,7 @@ namespace System
 			Register<INetworkSystem>(new NetworkSystem());
 			Register<IDataManager>(new DataManager());
 			Register<IAddressableManager>(new AddressableManager());
+			Register<ICameraSystem>(new CameraSystem());
 		}
 
 		private static void Register<T>(ISystem system) where T : ISystem
