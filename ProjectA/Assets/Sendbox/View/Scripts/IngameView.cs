@@ -2,7 +2,6 @@ using System;
 using System.Threading.Tasks;
 using JsonModel;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
@@ -32,11 +31,14 @@ public class IngameView : MonoBehaviour, IIngameView
     private InputAction brakeAction;
     private InputAction steerLeftAction;
     private InputAction steerRightAction;
+    private IPauseView pauseView;
 
     public async Task Initialize(StageModel model)
     {
         addressableManager = SystemsManager.Get<IAddressableManager>();
         cameraSystem       = SystemsManager.Get<ICameraSystem>();
+        
+        pauseView = ViewManager.Get<IPauseView>();
 
         Vector3    startPos = model.StartPosition.ToVector3();
         Quaternion startRot = Quaternion.Euler(model.StartRotation.ToVector3());
@@ -47,59 +49,10 @@ public class IngameView : MonoBehaviour, IIngameView
 
         carTransform = car.transform;
 
-        SetupInputActions();
         RegisterButtonEvents();
 
         cameraSystem.ChaseTarget(carTransform, 5, 1, 20, 20);
         miniMap.GetComponent<MinimapSystem>().SetTarget(carTransform);
-    }
-
-    private void SetupInputActions()
-    {
-        accelerateAction = new InputAction(binding: "<Keyboard>/upArrow");
-        brakeAction      = new InputAction(binding: "<Keyboard>/space");
-        steerLeftAction  = new InputAction(binding: "<Keyboard>/leftArrow");
-        steerRightAction = new InputAction(binding: "<Keyboard>/rightArrow");
-
-        // 키 누름 → 버튼을 프로그래밍적으로 Press
-        accelerateAction.performed  += ctx => SimulateButtonDown(AccelateButton);
-        brakeAction.performed       += ctx => SimulateButtonDown(BrakeButton);
-        steerLeftAction.performed   += ctx => SimulateButtonDown(SteerLeftButton);
-        steerRightAction.performed  += ctx => SimulateButtonDown(SteerRightButton);
-
-        // 키 뗌 → 버튼 Release
-        accelerateAction.canceled   += ctx => SimulateButtonUp(AccelateButton);
-        brakeAction.canceled        += ctx => SimulateButtonUp(BrakeButton);
-        steerLeftAction.canceled    += ctx => SimulateButtonUp(SteerLeftButton);
-        steerRightAction.canceled   += ctx => SimulateButtonUp(SteerRightButton);
-
-        accelerateAction.Enable();
-        brakeAction.Enable();
-        steerLeftAction.Enable();
-        steerRightAction.Enable();
-    }
-
-    // 버튼을 손가락으로 누른 것처럼 처리
-    private void SimulateButtonDown(Button button)
-    {
-        ExecuteEvents.Execute(
-            button.gameObject,
-            new PointerEventData(EventSystem.current),
-            ExecuteEvents.pointerDownHandler);
-    }
-
-    // 버튼에서 손가락을 뗀 것처럼 처리
-    private void SimulateButtonUp(Button button)
-    {
-        ExecuteEvents.Execute(
-            button.gameObject,
-            new PointerEventData(EventSystem.current),
-            ExecuteEvents.pointerUpHandler);
-
-        ExecuteEvents.Execute(
-            button.gameObject,
-            new PointerEventData(EventSystem.current),
-            ExecuteEvents.pointerClickHandler);
     }
 
     private void RegisterButtonEvents()
@@ -134,7 +87,7 @@ public class IngameView : MonoBehaviour, IIngameView
 
     public void OnPauseButtonClick()
     {
-        // 일시정지 처리
+        pauseView.Display();
     }
 
     public void OnCameraButtonClick()
