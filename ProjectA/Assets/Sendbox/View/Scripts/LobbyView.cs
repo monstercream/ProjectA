@@ -44,9 +44,6 @@ public class LobbyView : MonoBehaviour, ILobbyView
             stageSelectionView.Display();
             Hide();
         });
-
-        systemPopupView.Initialize("Notice", "Test");
-        systemPopupView.Display();
     }
 
     public void Dispose()

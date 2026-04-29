@@ -87,6 +87,13 @@ public class IngameView : MonoBehaviour, IIngameView
 
     public void OnPauseButtonClick()
     {
+        Hide();
+        Time.timeScale = 0;
+        pauseView.Initialize(() =>
+        {
+            Time.timeScale = 1;
+            Display();
+        });
         pauseView.Display();
     }
 
