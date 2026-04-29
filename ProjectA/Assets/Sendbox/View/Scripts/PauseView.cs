@@ -24,11 +24,13 @@ public class PauseView : MonoBehaviour, IPauseView
     public void Display()
     {
         gameObject.SetActive(true);
+        Time.timeScale = 0;
     }
 
     public void Hide()
     {
         gameObject.SetActive(false);
+        Time.timeScale = 1;
         onClosed?.Invoke();
     }
 }
