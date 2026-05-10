@@ -32,13 +32,14 @@ public class IngameView : MonoBehaviour, IIngameView
     private InputAction steerLeftAction;
     private InputAction steerRightAction;
     private IPauseView pauseView;
+    private ILobbyView lobbyView;
 
     public async Task Initialize(StageModel model)
     {
         addressableManager = SystemsManager.Get<IAddressableManager>();
         cameraSystem       = SystemsManager.Get<ICameraSystem>();
-        
         pauseView = ViewManager.Get<IPauseView>();
+        lobbyView = ViewManager.Get<ILobbyView>();
 
         Vector3    startPos = model.StartPosition.ToVector3();
         Quaternion startRot = Quaternion.Euler(model.StartRotation.ToVector3());
@@ -88,10 +89,7 @@ public class IngameView : MonoBehaviour, IIngameView
     public void OnPauseButtonClick()
     {
         Hide();
-        pauseView.Initialize(() =>
-        {
-            Display();
-        });
+        pauseView.Initialize(Resume, Restart, Quit);
         pauseView.Display();
     }
 
@@ -126,6 +124,21 @@ public class IngameView : MonoBehaviour, IIngameView
         SteerRightButton.onClick.RemoveAllListeners();
         PauseButton.onClick.RemoveAllListeners();
         CameraButton.onClick.RemoveAllListeners();
+    }
+    
+    private void Resume()
+    {
+        Display();
+    }
+
+    private void Restart()
+    {
+        
+    }
+
+    private void Quit()
+    {
+        lobbyView.Display();
     }
 
     public void Display() => gameObject.SetActive(true);
