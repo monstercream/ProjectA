@@ -46,7 +46,8 @@ public class IngameView : MonoBehaviour, IIngameView
         pauseView = ViewManager.Get<IPauseView>();
         lobbyView = ViewManager.Get<ILobbyView>();
         stageModel = model;
-
+        pauseView.Initialize(Resume, Restart, Quit);
+        
         RegisterButtonEvents();
         await RaceSetting(model);
     }
@@ -108,7 +109,6 @@ public class IngameView : MonoBehaviour, IIngameView
     public void OnPauseButtonClick()
     {
         Hide();
-        pauseView.Initialize(Resume, Restart, Quit);
         pauseView.Display();
     }
 
