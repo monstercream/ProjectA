@@ -56,6 +56,7 @@ jobs:
           targetPlatform: ${{ github.event.inputs.targetPlatform }}
           projectPath: ProjectA
           buildMethod: AddressablesBuildScript.BuildAddressables
+          versioning: None
 
       - name: 📂 Addressables 결과물 ServerData로 복사
         run: |
@@ -114,6 +115,7 @@ jobs:
         with:
           targetPlatform: ${{ github.event.inputs.targetPlatform }}
           projectPath: ProjectA
+          versioning: Semantic
 
       - name: 📦 빌드 결과물 업로드
         uses: actions/upload-artifact@v4
@@ -187,6 +189,7 @@ jobs:
           targetPlatform: iOS
           projectPath: ProjectA
           buildMethod: ''
+          versioning: None
 
       - name: 📦 Xcode 프로젝트 업로드 (다음 Job으로 전달)
         uses: actions/upload-artifact@v4
