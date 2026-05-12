@@ -57,12 +57,25 @@ jobs:
           projectPath: ProjectA
           buildMethod: AddressablesBuildScript.BuildAddressables
 
+      # ── 디버그: 실제 빌드 결과 경로 확인 ──
+      - name: 🔍 ServerData 경로 확인 (디버그)
+        run: |
+          echo "=== github.workspace ==="
+          echo ${{ github.workspace }}
+          echo "=== ServerData 디렉토리 탐색 ==="
+          find ${{ github.workspace }} -type d -name "ServerData" 2>/dev/null || echo "ServerData 디렉토리 없음"
+          echo "=== .bundle 파일 탐색 ==="
+          find ${{ github.workspace }} -name "*.bundle" 2>/dev/null | head -20 || echo ".bundle 파일 없음"
+          echo "=== catalog 파일 탐색 ==="
+          find ${{ github.workspace }} -name "catalog_*.json" 2>/dev/null | head -20 || echo "catalog 파일 없음"
+
       - name: 📤 Addressables 결과물 업로드
         uses: actions/upload-artifact@v4
         with:
           name: Addressables-${{ github.event.inputs.targetPlatform }}-${{ github.run_id }}
           path: ProjectA/ServerData
           retention-days: 3
+          if-no-files-found: error
 
   # ─────────────────────────────────────────────
   # 기존 빌드 Job (Windows / macOS / Android / WebGL)
@@ -138,7 +151,6 @@ jobs:
 
   # ─────────────────────────────────────────────
   # iOS 전용 Job - Step 1: Unity → Xcode 프로젝트 생성
-  # ubuntu-latest 에서 실행 (Unity 라이선스 활성화 가능)
   # ─────────────────────────────────────────────
   build-ios-unity:
     name: 🍎 [iOS 1/2] Unity → Xcode 프로젝트 생성
@@ -188,7 +200,6 @@ jobs:
 
   # ─────────────────────────────────────────────
   # iOS 전용 Job - Step 2: Xcode 빌드 + 서명 + IPA 출력
-  # macOS Runner 필수
   # ─────────────────────────────────────────────
   build-ios-xcode:
     name: 🍎 [iOS 2/2] Xcode 빌드 & 서명 → IPA
@@ -202,7 +213,6 @@ jobs:
           name: xcode-project-${{ github.run_id }}
           path: build/iOS
 
-      # ── 인증서 설치 ──────────────────────────
       - name: 🔐 인증서 & 프로비저닝 프로파일 설치
         env:
           CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
@@ -212,12 +222,10 @@ jobs:
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           KEYCHAIN_PASS=temppass123
 
-          # 임시 키체인 생성
           security create-keychain -p "$KEYCHAIN_PASS" $KEYCHAIN_PATH
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
           security unlock-keychain -p "$KEYCHAIN_PASS" $KEYCHAIN_PATH
 
-          # p12 인증서 설치
           echo "$CERTIFICATE_BASE64" | base64 --decode > $RUNNER_TEMP/cert.p12
           security import $RUNNER_TEMP/cert.p12 \
             -k $KEYCHAIN_PATH \
@@ -225,13 +233,11 @@ jobs:
             -A -t cert -f pkcs12
           security list-keychain -d user -s $KEYCHAIN_PATH
 
-          # 프로비저닝 프로파일 설치
           echo "$PROVISIONING_PROFILE_BASE64" | base64 --decode > $RUNNER_TEMP/profile.mobileprovision
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp $RUNNER_TEMP/profile.mobileprovision \
              ~/Library/MobileDevice/Provisioning\ Profiles/
 
-      # ── Xcode 빌드 & 아카이브 ────────────────
       - name: 🏗️ Xcode 아카이브 생성
         run: |
           xcodebuild archive \
@@ -245,7 +251,6 @@ jobs:
             CODE_SIGN_IDENTITY="iPhone Distribution" \
             PROVISIONING_PROFILE_SPECIFIER="${{ secrets.APPLE_PROVISIONING_PROFILE_NAME }}"
 
-      # ── ExportOptions 생성 & IPA 추출 ────────
       - name: 📲 IPA 추출 (Ad Hoc)
         run: |
           cat > $RUNNER_TEMP/ExportOptions.plist << EOF
@@ -271,7 +276,6 @@ jobs:
             -exportPath $RUNNER_TEMP/ipa \
             -exportOptionsPlist $RUNNER_TEMP/ExportOptions.plist
 
-      # ── IPA 업로드 ───────────────────────────
       - name: 📦 IPA 아티팩트 업로드
         uses: actions/upload-artifact@v4
         with:
@@ -279,7 +283,6 @@ jobs:
           path: ${{ runner.temp }}/ipa/*.ipa
           retention-days: 14
 
-      # ── 이메일 발송 ──────────────────────────
       - name: 📧 빌드 완료 이메일 발송
         uses: dawidd6/action-send-mail@v3
         with:
