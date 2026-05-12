@@ -57,17 +57,14 @@ jobs:
           projectPath: ProjectA
           buildMethod: AddressablesBuildScript.BuildAddressables
 
-      # ── 디버그: 실제 빌드 결과 경로 확인 ──
-      - name: 🔍 ServerData 경로 확인 (디버그)
+      - name: 📂 Addressables 결과물 ServerData로 복사
         run: |
-          echo "=== github.workspace ==="
-          echo ${{ github.workspace }}
-          echo "=== ServerData 디렉토리 탐색 ==="
-          find ${{ github.workspace }} -type d -name "ServerData" 2>/dev/null || echo "ServerData 디렉토리 없음"
-          echo "=== .bundle 파일 탐색 ==="
-          find ${{ github.workspace }} -name "*.bundle" 2>/dev/null | head -20 || echo ".bundle 파일 없음"
-          echo "=== catalog 파일 탐색 ==="
-          find ${{ github.workspace }} -name "catalog_*.json" 2>/dev/null | head -20 || echo "catalog 파일 없음"
+          mkdir -p ProjectA/ServerData
+          find ProjectA/Library/com.unity.addressables/aa -type f \
+            \( -name "*.bundle" -o -name "catalog_*.json" -o -name "catalog_*.hash" \) \
+            -exec cp {} ProjectA/ServerData/ \;
+          echo "=== 복사된 파일 목록 ==="
+          ls -la ProjectA/ServerData/
 
       - name: 📤 Addressables 결과물 업로드
         uses: actions/upload-artifact@v4
