@@ -19,6 +19,11 @@ public class PauseView : MonoBehaviour, IPauseView
         this.onRestart = onRestart;
         this.onQuit = onQuit;
         
+        settingButton.onClick.RemoveAllListeners();
+        resumeButton.onClick.RemoveAllListeners();
+        restartButton.onClick.RemoveAllListeners();
+        quitButton.onClick.RemoveAllListeners();
+        
         settingButton.onClick.AddListener(OnClickedSetting);
         resumeButton.onClick.AddListener(OnClickedResume);
         restartButton.onClick.AddListener(OnClickedRestart);

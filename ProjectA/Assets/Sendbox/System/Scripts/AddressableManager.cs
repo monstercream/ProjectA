@@ -8,8 +8,9 @@ using UnityEngine.SceneManagement;
 
 public class AddressableManager : IAddressableManager
 {
-    [ShowInInspector]
-    private Dictionary<string, AsyncOperationHandle> _handles = new();
+    [ShowInInspector] private Dictionary<string, AsyncOperationHandle> _handles = new();
+
+    private Dictionary<GameObject, AsyncOperationHandle<GameObject>> _instanceHandles = new();
 
     // ─── 단일 에셋 로드 ───────────────────────────────────────
     public async Task<T> LoadAssetAsync<T>(string key) where T : class
@@ -64,7 +65,8 @@ public class AddressableManager : IAddressableManager
             return handle.Result;
         }
 
-        Debug.LogError($"[AddressableManager] Label load failed: '{label}'. Error: {handle.OperationException?.Message}");
+        Debug.LogError(
+            $"[AddressableManager] Label load failed: '{label}'. Error: {handle.OperationException?.Message}");
         Addressables.Release(handle);
         return null;
     }
@@ -84,36 +86,37 @@ public class AddressableManager : IAddressableManager
         }
         else
         {
-            Debug.LogError($"[AddressableManager] Scene load failed: '{key}'. Error: {handle.OperationException?.Message}");
+            Debug.LogError(
+                $"[AddressableManager] Scene load failed: '{key}'. Error: {handle.OperationException?.Message}");
         }
     }
 
-    // ─── 프리팹 인스턴스화 ───────────────────────────────────
     public async Task<GameObject> InstantiateAsync(string key, Transform parent = null)
     {
         var handle = Addressables.InstantiateAsync(key, parent);
-
         await handle.Task;
 
         if (handle.Status == AsyncOperationStatus.Succeeded)
         {
-            _handles[key] = handle;
+            _instanceHandles[handle.Result] = handle; // GameObject 자체를 키로
             Debug.Log($"[AddressableManager] Instantiated: '{key}'");
             return handle.Result;
         }
 
-        Debug.LogError($"[AddressableManager] Instantiate failed: '{key}'. Error: {handle.OperationException?.Message}");
+        Debug.LogError(
+            $"[AddressableManager] Instantiate failed: '{key}'. Error: {handle.OperationException?.Message}");
         return null;
     }
-    // Class 수정
-    public async Task<GameObject> InstantiateAsync(string key, Vector3 position, Quaternion rotation, Transform parent = null)
+
+    public async Task<GameObject> InstantiateAsync(string key, Vector3 position, Quaternion rotation,
+        Transform parent = null)
     {
         var handle = Addressables.InstantiateAsync(key, position, rotation, parent);
         await handle.Task;
 
         if (handle.Status == AsyncOperationStatus.Succeeded)
         {
-            _handles[key] = handle;
+            _instanceHandles[handle.Result] = handle; // GameObject 자체를 키로
             Debug.Log($"[AddressableManager] Instantiated: '{key}' at {position}");
             return handle.Result;
         }
@@ -122,34 +125,48 @@ public class AddressableManager : IAddressableManager
         return null;
     }
 
-    // ─── 단일 해제 ───────────────────────────────────────────
-    public void Release(string key)
+    public Task ReleaseInstanceAsync(GameObject instance)
     {
-        if (!_handles.TryGetValue(key, out var handle))
+        if (instance == null) return Task.CompletedTask;
+
+        if (!_instanceHandles.TryGetValue(instance, out var handle))
         {
-            Debug.LogWarning($"[AddressableManager] Release failed — key not found: '{key}'");
-            return;
+            Debug.LogWarning($"[AddressableManager] ReleaseInstance failed — not found: {instance.name}");
+            Object.Destroy(instance);
+            return Task.CompletedTask;
         }
 
-        if (handle.IsValid())
-            Addressables.Release(handle);
+        var savedHandle = handle;
+        _instanceHandles.Remove(instance);
+        Object.Destroy(instance);
 
-        _handles.Remove(key);
-        Debug.Log($"[AddressableManager] Released: '{key}'");
+        if (savedHandle.IsValid())
+            Addressables.ReleaseInstance(savedHandle);
+
+        Debug.Log($"[AddressableManager] Released instance: {instance.name}");
+        return Task.CompletedTask;
     }
 
-    // ─── 전체 해제 ───────────────────────────────────────────
     public void ReleaseAll()
     {
         foreach (var (key, handle) in _handles)
         {
             if (handle.IsValid())
                 Addressables.Release(handle);
-
             Debug.Log($"[AddressableManager] Released: '{key}'");
         }
 
         _handles.Clear();
+
+        foreach (var (instance, handle) in _instanceHandles)
+        {
+            if (handle.IsValid())
+                Addressables.ReleaseInstance(handle);
+            Debug.Log($"[AddressableManager] Released instance: {instance?.name}");
+        }
+
+        _instanceHandles.Clear();
+
         Debug.Log("[AddressableManager] All assets released");
     }
 

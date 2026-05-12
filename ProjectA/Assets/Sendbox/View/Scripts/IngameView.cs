@@ -14,17 +14,18 @@ public class IngameView : MonoBehaviour, IIngameView
     [SerializeField] private Button PauseButton;
     [SerializeField] private Button CameraButton;
 
-    private ICameraSystem       cameraSystem;
+    private ICameraSystem cameraSystem;
     private IAddressableManager addressableManager;
-    private Transform           carTransform;
+    private Transform carTransform;
 
     private readonly (float distance, float height, float posSpeed, float rotSpeed)[] cameraPresets =
     {
-        (distance:  5f, height: 1f, posSpeed: 20f, rotSpeed: 20f),
+        (distance: 5f, height: 1f, posSpeed: 20f, rotSpeed: 20f),
         (distance: 10f, height: 3f, posSpeed: 10f, rotSpeed: 10f),
-        (distance:  7f, height: 5f, posSpeed: 15f, rotSpeed: 15f),
-        (distance:  3f, height: 1f, posSpeed: 25f, rotSpeed: 25f),
+        (distance: 7f, height: 5f, posSpeed: 15f, rotSpeed: 15f),
+        (distance: 3f, height: 1f, posSpeed: 25f, rotSpeed: 25f),
     };
+
     private int cameraPresetIndex = 0;
 
     private InputAction accelerateAction;
@@ -33,27 +34,45 @@ public class IngameView : MonoBehaviour, IIngameView
     private InputAction steerRightAction;
     private IPauseView pauseView;
     private ILobbyView lobbyView;
+    private GameObject stage;
+    private GameObject car;
+    private GameObject miniMap;
+    private StageModel stageModel;
 
     public async Task Initialize(StageModel model)
     {
         addressableManager = SystemsManager.Get<IAddressableManager>();
-        cameraSystem       = SystemsManager.Get<ICameraSystem>();
+        cameraSystem = SystemsManager.Get<ICameraSystem>();
         pauseView = ViewManager.Get<IPauseView>();
         lobbyView = ViewManager.Get<ILobbyView>();
-
-        Vector3    startPos = model.StartPosition.ToVector3();
-        Quaternion startRot = Quaternion.Euler(model.StartRotation.ToVector3());
-
-        GameObject stage   = await addressableManager.InstantiateAsync(model.PrefabPath);
-        GameObject car     = await addressableManager.InstantiateAsync("Car", startPos, startRot);
-        GameObject miniMap = await addressableManager.InstantiateAsync("MiniMap");
-
-        carTransform = car.transform;
+        stageModel = model;
 
         RegisterButtonEvents();
+        await RaceSetting(model);
+    }
 
+    private async Task RaceSetting(StageModel model)
+    {
+        Vector3 startPos = model.StartPosition.ToVector3();
+        Quaternion startRot = Quaternion.Euler(model.StartRotation.ToVector3());
+
+        stage = await addressableManager.InstantiateAsync(model.PrefabPath);
+        car = await addressableManager.InstantiateAsync("Car", startPos, startRot);
+        miniMap = await addressableManager.InstantiateAsync("MiniMap");
+
+        carTransform = car.transform;
         cameraSystem.ChaseTarget(carTransform, 5, 1, 20, 20);
         miniMap.GetComponent<MinimapSystem>().SetTarget(carTransform);
+    }
+    private async Task RaceFinished()
+    {
+        await addressableManager.ReleaseInstanceAsync(stage);
+        await addressableManager.ReleaseInstanceAsync(car);
+        await addressableManager.ReleaseInstanceAsync(miniMap);
+
+        stage = null;
+        car = null;
+        miniMap = null;
     }
 
     private void RegisterButtonEvents()
@@ -125,22 +144,25 @@ public class IngameView : MonoBehaviour, IIngameView
         PauseButton.onClick.RemoveAllListeners();
         CameraButton.onClick.RemoveAllListeners();
     }
-    
+
     private void Resume()
     {
         Display();
     }
 
-    private void Restart()
+    private async void Restart()
     {
-        
+        await RaceFinished();
+        await RaceSetting(stageModel);
+        Display();
     }
 
-    private void Quit()
+    private async void Quit()
     {
+        await RaceFinished();
         lobbyView.Display();
     }
 
     public void Display() => gameObject.SetActive(true);
-    public void Hide()    => gameObject.SetActive(false);
+    public void Hide() => gameObject.SetActive(false);
 }
