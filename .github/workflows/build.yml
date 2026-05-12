@@ -97,6 +97,11 @@ jobs:
           name: Addressables-${{ github.event.inputs.targetPlatform }}-${{ github.run_id }}
           path: ProjectA/ServerData
 
+      - name: 🧹 ServerData .gitignore 등록
+        run: |
+          echo "ServerData/" >> ProjectA/.gitignore
+          echo "ServerData/" >> .gitignore
+
       - name: 💾 Library 캐시
         uses: actions/cache@v3
         with:
@@ -169,6 +174,11 @@ jobs:
         with:
           name: Addressables-${{ github.event.inputs.targetPlatform }}-${{ github.run_id }}
           path: ProjectA/ServerData
+
+      - name: 🧹 ServerData .gitignore 등록
+        run: |
+          echo "ServerData/" >> ProjectA/.gitignore
+          echo "ServerData/" >> .gitignore
 
       - name: 💾 Library 캐시
         uses: actions/cache@v3
