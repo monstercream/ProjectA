@@ -97,11 +97,6 @@ jobs:
           name: Addressables-${{ github.event.inputs.targetPlatform }}-${{ github.run_id }}
           path: ProjectA/ServerData
 
-      - name: 🧹 ServerData .gitignore 등록
-        run: |
-          echo "ServerData/" >> ProjectA/.gitignore
-          echo "ServerData/" >> .gitignore
-
       - name: 💾 Library 캐시
         uses: actions/cache@v3
         with:
@@ -120,7 +115,8 @@ jobs:
         with:
           targetPlatform: ${{ github.event.inputs.targetPlatform }}
           projectPath: ProjectA
-          versioning: Semantic
+          versioning: None
+          buildVersion: ${{ github.run_number }}
 
       - name: 📦 빌드 결과물 업로드
         uses: actions/upload-artifact@v4
@@ -139,13 +135,14 @@ jobs:
           password: ${{ secrets.MAIL_PASSWORD }}
           to: chococreamcrow@gmail.com
           from: ${{ secrets.MAIL_USERNAME }}
-          subject: "✅ Unity 빌드 완료 - ${{ github.event.inputs.targetPlatform }} (${{ github.event.inputs.branch }})"
+          subject: "✅ Unity 빌드 완료 - ${{ github.event.inputs.targetPlatform }} (${{ github.event.inputs.branch }}) #${{ github.run_number }}"
           body: |
             Unity 빌드가 완료되었습니다! 🎉
 
             📌 빌드 정보
             - 플랫폼: ${{ github.event.inputs.targetPlatform }}
             - 브랜치: ${{ github.event.inputs.branch }}
+            - 버전: ${{ github.run_number }}
             - 커밋: ${{ github.sha }}
 
             📦 아티팩트 다운로드 링크:
@@ -175,11 +172,6 @@ jobs:
           name: Addressables-${{ github.event.inputs.targetPlatform }}-${{ github.run_id }}
           path: ProjectA/ServerData
 
-      - name: 🧹 ServerData .gitignore 등록
-        run: |
-          echo "ServerData/" >> ProjectA/.gitignore
-          echo "ServerData/" >> .gitignore
-
       - name: 💾 Library 캐시
         uses: actions/cache@v3
         with:
@@ -200,6 +192,7 @@ jobs:
           projectPath: ProjectA
           buildMethod: ''
           versioning: None
+          buildVersion: ${{ github.run_number }}
 
       - name: 📦 Xcode 프로젝트 업로드 (다음 Job으로 전달)
         uses: actions/upload-artifact@v4
@@ -303,13 +296,14 @@ jobs:
           password: ${{ secrets.MAIL_PASSWORD }}
           to: chococreamcrow@gmail.com
           from: ${{ secrets.MAIL_USERNAME }}
-          subject: "✅ Unity 빌드 완료 - iOS (${{ github.event.inputs.branch }})"
+          subject: "✅ Unity 빌드 완료 - iOS (${{ github.event.inputs.branch }}) #${{ github.run_number }}"
           body: |
             Unity iOS 빌드가 완료되었습니다! 🎉
 
             📌 빌드 정보
             - 플랫폼: iOS (Ad Hoc)
             - 브랜치: ${{ github.event.inputs.branch }}
+            - 버전: ${{ github.run_number }}
             - 커밋: ${{ github.sha }}
             - 빌드 번호: ${{ github.run_number }}
 
