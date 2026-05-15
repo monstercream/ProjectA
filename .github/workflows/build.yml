@@ -31,6 +31,15 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.inputs.buildAddressables == 'true'
     steps:
+      - name: 🧹 디스크 공간 확보
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+          df -h
+
       - name: 📥 코드 체크아웃
         uses: actions/checkout@v4
         with:
@@ -101,6 +110,15 @@ jobs:
       github.event.inputs.targetPlatform != 'iOS' &&
       (needs.build-addressables.result == 'success' || needs.build-addressables.result == 'skipped')
     steps:
+      - name: 🧹 디스크 공간 확보
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+          df -h
+
       - name: 📥 코드 체크아웃
         uses: actions/checkout@v4
         with:
@@ -181,6 +199,15 @@ jobs:
       github.event.inputs.targetPlatform == 'iOS' &&
       (needs.build-addressables.result == 'success' || needs.build-addressables.result == 'skipped')
     steps:
+      - name: 🧹 디스크 공간 확보
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+          df -h
+
       - name: 📥 코드 체크아웃
         uses: actions/checkout@v4
         with:
