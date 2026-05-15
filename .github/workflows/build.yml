@@ -82,14 +82,14 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.CF_R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.CF_R2_SECRET_ACCESS_KEY }}
         run: |
-          aws s3 sync ProjectA/ServerData/ \
-            s3://${{ secrets.CF_R2_BUCKET_NAME }}/${{ github.event.inputs.targetPlatform }}/ \
-            --endpoint-url ${{ secrets.CF_R2_ENDPOINT }} \
+          aws s3 sync "ProjectA/ServerData/" \
+            "s3://${{ secrets.CF_R2_BUCKET_NAME }}/${{ github.event.inputs.targetPlatform }}/" \
+            --endpoint-url "${{ secrets.CF_R2_ENDPOINT }}" \
             --delete \
             --no-progress
           echo "✅ R2 배포 완료"
           echo "📡 Public URL: ${{ secrets.CF_R2_PUBLIC_URL }}/${{ github.event.inputs.targetPlatform }}/"
-
+          
       - name: 📤 Addressables 결과물 업로드 (빌드 job 전달용)
         uses: actions/upload-artifact@v4
         with:
