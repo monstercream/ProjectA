@@ -50,10 +50,11 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ProjectA/Library
-          key: Library-Addressables-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          # ✅ FIX: 플랫폼별로 캐시 키를 분리해 Library 오염 방지
+          key: Library-Addressables-${{ github.event.inputs.targetPlatform }}-${{ hashFiles('ProjectA/Assets/**', 'ProjectA/Packages/**', 'ProjectA/ProjectSettings/**') }}
           restore-keys: |
+            Library-Addressables-${{ github.event.inputs.targetPlatform }}-
             Library-Addressables-
-            Library-
 
       - name: 📦 Addressables 빌드
         uses: game-ci/unity-builder@v4
@@ -67,29 +68,89 @@ jobs:
           buildMethod: AddressablesBuildScript.BuildAddressables
           versioning: None
 
-      - name: 📂 Addressables 결과물 ServerData로 복사
+      - name: 📂 Addressables 결과물 플랫폼별 분리 복사
         run: |
           mkdir -p ProjectA/ServerData
-          find ProjectA/Library/com.unity.addressables/aa -type f \
-            \( -name "*.bundle" -o -name "catalog_*.json" -o -name "catalog_*.hash" \) \
-            -exec cp {} ProjectA/ServerData/ \;
-          echo "=== 복사된 파일 목록 ==="
-          ls -la ProjectA/ServerData/
 
-      # ── AWS CLI로 R2 업로드 (R2는 S3 호환 API 사용) ──
+          # ✅ FIX: 플랫폼 디렉토리를 정확히 지정해 다른 플랫폼 파일 혼입 방지
+          # Unity Addressables는 aa/{BuildTarget}/ 또는 aa/Android/ 등에 출력
+          PLATFORM="${{ github.event.inputs.targetPlatform }}"
+
+          # 플랫폼 디렉토리 후보 탐색 (Unity 버전마다 경로 다를 수 있음)
+          AA_BASE="ProjectA/Library/com.unity.addressables/aa"
+
+          echo "=== Addressables 출력 디렉토리 구조 ==="
+          find "$AA_BASE" -maxdepth 2 -type d | sort
+
+          # 플랫폼별 디렉토리에서만 복사 (평탄화하지 않고 구조 유지)
+          if [ -d "$AA_BASE/$PLATFORM" ]; then
+            # ✅ FIX: cp 대신 rsync로 디렉토리 구조 보존
+            rsync -av "$AA_BASE/$PLATFORM/" "ProjectA/ServerData/"
+            echo "✅ $PLATFORM 디렉토리에서 복사 완료"
+          else
+            echo "⚠️  $PLATFORM 디렉토리 없음, 전체 탐색으로 fallback"
+            # 그래도 구조는 유지하면서 복사
+            find "$AA_BASE" -type f \
+              \( -name "*.bundle" -o -name "catalog_*.json" -o -name "catalog_*.hash" \) | \
+            while read -r FILE; do
+              # aa/ 이후 상대 경로 유지
+              REL="${FILE#$AA_BASE/}"
+              DEST="ProjectA/ServerData/$REL"
+              mkdir -p "$(dirname "$DEST")"
+              cp "$FILE" "$DEST"
+            done
+          fi
+
+          echo "=== 복사된 파일 목록 ==="
+          find ProjectA/ServerData -type f | sort
+
+      # ── AWS CLI로 R2 업로드 ──
       - name: ☁️ Cloudflare R2에 Addressables 배포
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.CF_R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.CF_R2_SECRET_ACCESS_KEY }}
         run: |
+          # ✅ FIX: ServerData/ 내부 구조를 그대로 플랫폼 prefix 하위에 업로드
           aws s3 sync "ProjectA/ServerData/" \
             "s3://${{ secrets.CF_R2_BUCKET_NAME }}/${{ github.event.inputs.targetPlatform }}/" \
             --endpoint-url "${{ secrets.CF_R2_ENDPOINT }}" \
             --delete \
             --no-progress
+
           echo "✅ R2 배포 완료"
           echo "📡 Public URL: ${{ secrets.CF_R2_PUBLIC_URL }}/${{ github.event.inputs.targetPlatform }}/"
-          
+
+          # ✅ 배포된 파일 목록 검증 출력
+          echo "=== R2 업로드된 파일 목록 ==="
+          aws s3 ls \
+            "s3://${{ secrets.CF_R2_BUCKET_NAME }}/${{ github.event.inputs.targetPlatform }}/" \
+            --endpoint-url "${{ secrets.CF_R2_ENDPOINT }}" \
+            --recursive
+
+      # ✅ catalog 접근 가능 여부 즉시 검증
+      - name: 🔍 R2 catalog 접근 검증
+        run: |
+          PUBLIC_URL="${{ secrets.CF_R2_PUBLIC_URL }}"
+          PLATFORM="${{ github.event.inputs.targetPlatform }}"
+
+          # catalog.json 또는 catalog_*.json 파일 URL 확인
+          CATALOG_URL="$PUBLIC_URL/$PLATFORM/"
+          echo "카탈로그 베이스 URL: $CATALOG_URL"
+
+          # catalog.hash 파일 HTTP 접근 테스트 (R2 퍼블릭 접근 확인)
+          HASH_FILE=$(find ProjectA/ServerData -name "*.hash" | head -1)
+          if [ -n "$HASH_FILE" ]; then
+            HASH_NAME=$(basename "$HASH_FILE")
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$CATALOG_URL$HASH_NAME")
+            echo "📡 $HASH_NAME HTTP 응답: $HTTP_STATUS"
+            if [ "$HTTP_STATUS" != "200" ]; then
+              echo "❌ R2 퍼블릭 접근 실패! R2 버킷 퍼블릭 설정 또는 URL 확인 필요"
+              exit 1
+            else
+              echo "✅ R2 퍼블릭 접근 정상"
+            fi
+          fi
+
       - name: 📤 Addressables 결과물 업로드 (빌드 job 전달용)
         uses: actions/upload-artifact@v4
         with:
@@ -136,7 +197,8 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ProjectA/Library
-          key: Library-${{ github.event.inputs.targetPlatform }}-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          # ✅ FIX: Addressables와 별개로 빌드용 캐시 분리
+          key: Library-${{ github.event.inputs.targetPlatform }}-${{ hashFiles('ProjectA/Assets/**', 'ProjectA/Packages/**', 'ProjectA/ProjectSettings/**') }}
           restore-keys: |
             Library-${{ github.event.inputs.targetPlatform }}-
             Library-
@@ -225,7 +287,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ProjectA/Library
-          key: Library-iOS-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          key: Library-iOS-${{ hashFiles('ProjectA/Assets/**', 'ProjectA/Packages/**', 'ProjectA/ProjectSettings/**') }}
           restore-keys: |
             Library-iOS-
             Library-
@@ -239,7 +301,6 @@ jobs:
         with:
           targetPlatform: iOS
           projectPath: ProjectA
-          buildMethod: ''
           versioning: None
           buildVersion: ${{ github.run_number }}
 
