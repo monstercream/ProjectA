@@ -1,4 +1,5 @@
 name: Unity Build CI
+
 on:
   workflow_dispatch:
     inputs:
@@ -22,6 +23,11 @@ on:
           - 'true'
           - 'false'
 
+# ✅ FIX 9: 동일 플랫폼 동시 실행 방지, 새 실행이 오면 이전 취소
+concurrency:
+  group: unity-build-${{ github.event.inputs.targetPlatform }}
+  cancel-in-progress: true
+
 jobs:
   # ─────────────────────────────────────────────
   # Addressables 콘텐츠 빌드 + R2 배포
@@ -29,6 +35,7 @@ jobs:
   build-addressables:
     name: 📦 Addressables Build & R2 Deploy
     runs-on: ubuntu-latest
+    timeout-minutes: 60  # ✅ FIX 10
     if: github.event.inputs.buildAddressables == 'true'
     steps:
       - name: 🧹 디스크 공간 확보
@@ -44,17 +51,17 @@ jobs:
         uses: actions/checkout@v4
         with:
           lfs: true
-          fetch-depth: 0
+          fetch-depth: 1  # ✅ FIX 6: 히스토리 불필요
 
       - name: 💾 Library 캐시
         uses: actions/cache@v3
         with:
           path: ProjectA/Library
-          # ✅ FIX: 플랫폼별로 캐시 키를 분리해 Library 오염 방지
-          key: Library-Addressables-${{ github.event.inputs.targetPlatform }}-${{ hashFiles('ProjectA/Assets/**', 'ProjectA/Packages/**', 'ProjectA/ProjectSettings/**') }}
+          # ✅ FIX 4, 7, 8: 올바른 경로 + Build job과 캐시 공유 가능하도록 prefix 통일
+          key: Library-${{ github.event.inputs.targetPlatform }}-${{ hashFiles('ProjectA/Assets/**', 'ProjectA/Packages/**', 'ProjectA/ProjectSettings/**') }}
           restore-keys: |
-            Library-Addressables-${{ github.event.inputs.targetPlatform }}-
-            Library-Addressables-
+            Library-${{ github.event.inputs.targetPlatform }}-
+            Library-
 
       - name: 📦 Addressables 빌드
         uses: game-ci/unity-builder@v4
@@ -70,31 +77,25 @@ jobs:
 
       - name: 📂 Addressables 결과물 플랫폼별 분리 복사
         run: |
+          set -euo pipefail  # ✅ FIX 1
+
           mkdir -p ProjectA/ServerData
-
-          # ✅ FIX: 플랫폼 디렉토리를 정확히 지정해 다른 플랫폼 파일 혼입 방지
-          # Unity Addressables는 aa/{BuildTarget}/ 또는 aa/Android/ 등에 출력
           PLATFORM="${{ github.event.inputs.targetPlatform }}"
-
-          # 플랫폼 디렉토리 후보 탐색 (Unity 버전마다 경로 다를 수 있음)
           AA_BASE="ProjectA/Library/com.unity.addressables/aa"
 
           echo "=== Addressables 출력 디렉토리 구조 ==="
-          find "$AA_BASE" -maxdepth 2 -type d | sort
+          find "$AA_BASE" -maxdepth 3 -type d | sort
 
-          # 플랫폼별 디렉토리에서만 복사 (평탄화하지 않고 구조 유지)
           if [ -d "$AA_BASE/$PLATFORM" ]; then
-            # ✅ FIX: cp 대신 rsync로 디렉토리 구조 보존
             rsync -av "$AA_BASE/$PLATFORM/" "ProjectA/ServerData/"
             echo "✅ $PLATFORM 디렉토리에서 복사 완료"
           else
-            echo "⚠️  $PLATFORM 디렉토리 없음, 전체 탐색으로 fallback"
-            # 그래도 구조는 유지하면서 복사
+            echo "⚠️  $PLATFORM 디렉토리 없음, 전체 탐색 fallback"
+            # ✅ FIX: 상대 경로 구조 보존
             find "$AA_BASE" -type f \
               \( -name "*.bundle" -o -name "catalog_*.json" -o -name "catalog_*.hash" \) | \
-            while read -r FILE; do
-              # aa/ 이후 상대 경로 유지
-              REL="${FILE#$AA_BASE/}"
+            while IFS= read -r FILE; do
+              REL="${FILE#"$AA_BASE"/}"
               DEST="ProjectA/ServerData/$REL"
               mkdir -p "$(dirname "$DEST")"
               cp "$FILE" "$DEST"
@@ -104,13 +105,23 @@ jobs:
           echo "=== 복사된 파일 목록 ==="
           find ProjectA/ServerData -type f | sort
 
-      # ── AWS CLI로 R2 업로드 ──
+          # 필수 파일 존재 확인
+          BUNDLE_COUNT=$(find ProjectA/ServerData -name "*.bundle" | wc -l)
+          CATALOG_COUNT=$(find ProjectA/ServerData -name "catalog_*.json" | wc -l)
+          echo "번들 파일 수: $BUNDLE_COUNT"
+          echo "카탈로그 파일 수: $CATALOG_COUNT"
+          if [ "$BUNDLE_COUNT" -eq 0 ] || [ "$CATALOG_COUNT" -eq 0 ]; then
+            echo "❌ 번들 또는 카탈로그 파일 없음 - 빌드 실패"
+            exit 1
+          fi
+
       - name: ☁️ Cloudflare R2에 Addressables 배포
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.CF_R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.CF_R2_SECRET_ACCESS_KEY }}
         run: |
-          # ✅ FIX: ServerData/ 내부 구조를 그대로 플랫폼 prefix 하위에 업로드
+          set -euo pipefail  # ✅ FIX 1
+
           aws s3 sync "ProjectA/ServerData/" \
             "s3://${{ secrets.CF_R2_BUCKET_NAME }}/${{ github.event.inputs.targetPlatform }}/" \
             --endpoint-url "${{ secrets.CF_R2_ENDPOINT }}" \
@@ -120,38 +131,43 @@ jobs:
           echo "✅ R2 배포 완료"
           echo "📡 Public URL: ${{ secrets.CF_R2_PUBLIC_URL }}/${{ github.event.inputs.targetPlatform }}/"
 
-          # ✅ 배포된 파일 목록 검증 출력
-          echo "=== R2 업로드된 파일 목록 ==="
+          echo "=== R2 업로드 파일 목록 ==="
           aws s3 ls \
             "s3://${{ secrets.CF_R2_BUCKET_NAME }}/${{ github.event.inputs.targetPlatform }}/" \
             --endpoint-url "${{ secrets.CF_R2_ENDPOINT }}" \
             --recursive
 
-      # ✅ catalog 접근 가능 여부 즉시 검증
       - name: 🔍 R2 catalog 접근 검증
         run: |
+          set -euo pipefail  # ✅ FIX 1
+
           PUBLIC_URL="${{ secrets.CF_R2_PUBLIC_URL }}"
           PLATFORM="${{ github.event.inputs.targetPlatform }}"
 
-          # catalog.json 또는 catalog_*.json 파일 URL 확인
-          CATALOG_URL="$PUBLIC_URL/$PLATFORM/"
-          echo "카탈로그 베이스 URL: $CATALOG_URL"
-
-          # catalog.hash 파일 HTTP 접근 테스트 (R2 퍼블릭 접근 확인)
+          # ✅ FIX 2: 실제 업로드 경로 기준으로 상대경로 유지하여 URL 생성
           HASH_FILE=$(find ProjectA/ServerData -name "*.hash" | head -1)
-          if [ -n "$HASH_FILE" ]; then
-            HASH_NAME=$(basename "$HASH_FILE")
-            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$CATALOG_URL$HASH_NAME")
-            echo "📡 $HASH_NAME HTTP 응답: $HTTP_STATUS"
-            if [ "$HTTP_STATUS" != "200" ]; then
-              echo "❌ R2 퍼블릭 접근 실패! R2 버킷 퍼블릭 설정 또는 URL 확인 필요"
-              exit 1
-            else
-              echo "✅ R2 퍼블릭 접근 정상"
-            fi
+
+          if [ -z "$HASH_FILE" ]; then
+            echo "⚠️  .hash 파일 없음, 검증 건너뜀"
+            exit 0
           fi
 
-      - name: 📤 Addressables 결과물 업로드 (빌드 job 전달용)
+          # ServerData/ 이후 상대 경로로 URL 조립
+          REL_PATH="${HASH_FILE#ProjectA/ServerData/}"
+          FULL_URL="$PUBLIC_URL/$PLATFORM/$REL_PATH"
+          echo "검증 URL: $FULL_URL"
+
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$FULL_URL")
+          echo "HTTP 응답: $HTTP_STATUS"
+
+          if [ "$HTTP_STATUS" != "200" ]; then
+            echo "❌ R2 퍼블릭 접근 실패 (HTTP $HTTP_STATUS)"
+            echo "   R2 버킷 퍼블릭 도메인 설정을 확인하세요"
+            exit 1
+          fi
+          echo "✅ R2 퍼블릭 접근 정상"
+
+      - name: 📤 Addressables 결과물 업로드
         uses: actions/upload-artifact@v4
         with:
           name: Addressables-${{ github.event.inputs.targetPlatform }}-${{ github.run_id }}
@@ -165,6 +181,7 @@ jobs:
   build:
     name: 🔨 Build (${{ github.event.inputs.targetPlatform }})
     runs-on: ubuntu-latest
+    timeout-minutes: 90  # ✅ FIX 10
     needs: [build-addressables]
     if: |
       always() &&
@@ -184,9 +201,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           lfs: true
-          fetch-depth: 0
+          fetch-depth: 1  # ✅ FIX 6
 
-      - name: 📥 Addressables 결과물 다운로드 (빌드한 경우에만)
+      - name: 📥 Addressables 결과물 다운로드
         if: github.event.inputs.buildAddressables == 'true'
         uses: actions/download-artifact@v4
         with:
@@ -197,7 +214,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ProjectA/Library
-          # ✅ FIX: Addressables와 별개로 빌드용 캐시 분리
+          # ✅ FIX 4, 7, 8: Addressables job과 동일한 key → 캐시 재사용
           key: Library-${{ github.event.inputs.targetPlatform }}-${{ hashFiles('ProjectA/Assets/**', 'ProjectA/Packages/**', 'ProjectA/ProjectSettings/**') }}
           restore-keys: |
             Library-${{ github.event.inputs.targetPlatform }}-
@@ -223,6 +240,7 @@ jobs:
           retention-days: 14
 
       - name: 📧 빌드 완료 이메일 발송
+        if: always()  # ✅ 빌드 실패해도 알림 발송
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
@@ -232,29 +250,31 @@ jobs:
           password: ${{ secrets.MAIL_PASSWORD }}
           to: chococreamcrow@gmail.com
           from: ${{ secrets.MAIL_USERNAME }}
-          subject: "✅ Unity 빌드 완료 - ${{ github.event.inputs.targetPlatform }} (${{ github.ref_name }}) #${{ github.run_number }}"
+          subject: "${{ job.status == 'success' && '✅' || '❌' }} Unity 빌드 ${{ job.status }} - ${{ github.event.inputs.targetPlatform }} (${{ github.ref_name }}) #${{ github.run_number }}"
           body: |
-            Unity 빌드가 완료되었습니다! 🎉
+            Unity 빌드가 ${{ job.status }}로 완료되었습니다.
 
             📌 빌드 정보
+            - 상태: ${{ job.status }}
             - 플랫폼: ${{ github.event.inputs.targetPlatform }}
             - 브랜치: ${{ github.ref_name }}
             - 버전: ${{ github.run_number }}
             - 커밋: ${{ github.sha }}
             - Addressables 배포: ${{ github.event.inputs.buildAddressables }}
 
-            ${{ github.event.inputs.buildAddressables == 'true' && '☁️ Addressables R2 배포 URL:' || '' }}
+            ${{ github.event.inputs.buildAddressables == 'true' && '☁️ Addressables R2 URL:' || '' }}
             ${{ github.event.inputs.buildAddressables == 'true' && format('{0}/{1}/', secrets.CF_R2_PUBLIC_URL, github.event.inputs.targetPlatform) || '' }}
 
-            📦 아티팩트 다운로드 링크:
+            📦 아티팩트:
             https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
   # ─────────────────────────────────────────────
-  # iOS 전용 Job - Step 1: Unity → Xcode 프로젝트 생성
+  # iOS Step 1: Unity → Xcode 프로젝트 생성
   # ─────────────────────────────────────────────
   build-ios-unity:
     name: 🍎 [iOS 1/2] Unity → Xcode 프로젝트 생성
     runs-on: ubuntu-latest
+    timeout-minutes: 90  # ✅ FIX 10
     needs: [build-addressables]
     if: |
       always() &&
@@ -274,9 +294,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           lfs: true
-          fetch-depth: 0
+          fetch-depth: 1  # ✅ FIX 6
 
-      - name: 📥 Addressables 결과물 다운로드 (빌드한 경우에만)
+      - name: 📥 Addressables 결과물 다운로드
         if: github.event.inputs.buildAddressables == 'true'
         uses: actions/download-artifact@v4
         with:
@@ -287,6 +307,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ProjectA/Library
+          # ✅ FIX 4, 7, 8
           key: Library-iOS-${{ hashFiles('ProjectA/Assets/**', 'ProjectA/Packages/**', 'ProjectA/ProjectSettings/**') }}
           restore-keys: |
             Library-iOS-
@@ -304,19 +325,21 @@ jobs:
           versioning: None
           buildVersion: ${{ github.run_number }}
 
-      - name: 📦 Xcode 프로젝트 업로드 (다음 Job으로 전달)
+      - name: 📦 Xcode 프로젝트 업로드
         uses: actions/upload-artifact@v4
         with:
           name: xcode-project-${{ github.run_id }}
           path: build/iOS
-          retention-days: 1
+          retention-days: 3  # ✅ FIX 3: 1 → 3일
+          if-no-files-found: error
 
   # ─────────────────────────────────────────────
-  # iOS 전용 Job - Step 2: Xcode 빌드 + 서명 + IPA 출력
+  # iOS Step 2: Xcode 빌드 + 서명 + IPA
   # ─────────────────────────────────────────────
   build-ios-xcode:
     name: 🍎 [iOS 2/2] Xcode 빌드 & 서명 → IPA
     runs-on: macos-latest
+    timeout-minutes: 60  # ✅ FIX 10
     needs: build-ios-unity
     if: github.event.inputs.targetPlatform == 'iOS'
     steps:
@@ -332,41 +355,47 @@ jobs:
           CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
         run: |
+          set -euo pipefail  # ✅ FIX 1
+
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           KEYCHAIN_PASS=temppass123
 
-          security create-keychain -p "$KEYCHAIN_PASS" $KEYCHAIN_PATH
-          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
-          security unlock-keychain -p "$KEYCHAIN_PASS" $KEYCHAIN_PATH
+          security create-keychain -p "$KEYCHAIN_PASS" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASS" "$KEYCHAIN_PATH"
 
-          echo "$CERTIFICATE_BASE64" | base64 --decode > $RUNNER_TEMP/cert.p12
-          security import $RUNNER_TEMP/cert.p12 \
-            -k $KEYCHAIN_PATH \
+          echo "$CERTIFICATE_BASE64" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" \
+            -k "$KEYCHAIN_PATH" \
             -P "$CERTIFICATE_PASSWORD" \
             -A -t cert -f pkcs12
-          security list-keychain -d user -s $KEYCHAIN_PATH
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
 
-          echo "$PROVISIONING_PROFILE_BASE64" | base64 --decode > $RUNNER_TEMP/profile.mobileprovision
+          echo "$PROVISIONING_PROFILE_BASE64" | base64 --decode > "$RUNNER_TEMP/profile.mobileprovision"
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp $RUNNER_TEMP/profile.mobileprovision \
+          cp "$RUNNER_TEMP/profile.mobileprovision" \
              ~/Library/MobileDevice/Provisioning\ Profiles/
 
       - name: 🏗️ Xcode 아카이브 생성
         run: |
+          set -euo pipefail  # ✅ FIX 1
+
           xcodebuild archive \
             -project build/iOS/Unity-iPhone.xcodeproj \
             -scheme Unity-iPhone \
             -configuration Release \
-            -archivePath $RUNNER_TEMP/Unity-iPhone.xcarchive \
+            -archivePath "$RUNNER_TEMP/Unity-iPhone.xcarchive" \
             -destination "generic/platform=iOS" \
             CODE_SIGN_STYLE=Manual \
-            DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }} \
+            DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
             CODE_SIGN_IDENTITY="iPhone Distribution" \
             PROVISIONING_PROFILE_SPECIFIER="${{ secrets.APPLE_PROVISIONING_PROFILE_NAME }}"
 
       - name: 📲 IPA 추출 (Ad Hoc)
         run: |
-          cat > $RUNNER_TEMP/ExportOptions.plist << EOF
+          set -euo pipefail  # ✅ FIX 1
+
+          cat > "$RUNNER_TEMP/ExportOptions.plist" << EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
             "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -385,9 +414,9 @@ jobs:
           EOF
 
           xcodebuild -exportArchive \
-            -archivePath $RUNNER_TEMP/Unity-iPhone.xcarchive \
-            -exportPath $RUNNER_TEMP/ipa \
-            -exportOptionsPlist $RUNNER_TEMP/ExportOptions.plist
+            -archivePath "$RUNNER_TEMP/Unity-iPhone.xcarchive" \
+            -exportPath "$RUNNER_TEMP/ipa" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist"
 
       - name: 📦 IPA 아티팩트 업로드
         uses: actions/upload-artifact@v4
@@ -397,6 +426,7 @@ jobs:
           retention-days: 14
 
       - name: 📧 빌드 완료 이메일 발송
+        if: always()  # ✅ 실패 시에도 알림
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
@@ -406,23 +436,24 @@ jobs:
           password: ${{ secrets.MAIL_PASSWORD }}
           to: chococreamcrow@gmail.com
           from: ${{ secrets.MAIL_USERNAME }}
-          subject: "✅ Unity 빌드 완료 - iOS (${{ github.ref_name }}) #${{ github.run_number }}"
+          subject: "${{ job.status == 'success' && '✅' || '❌' }} Unity iOS 빌드 ${{ job.status }} - (${{ github.ref_name }}) #${{ github.run_number }}"
           body: |
-            Unity iOS 빌드가 완료되었습니다! 🎉
+            Unity iOS 빌드가 ${{ job.status }}로 완료되었습니다.
 
             📌 빌드 정보
+            - 상태: ${{ job.status }}
             - 플랫폼: iOS (Ad Hoc)
             - 브랜치: ${{ github.ref_name }}
             - 버전: ${{ github.run_number }}
             - 커밋: ${{ github.sha }}
             - Addressables 배포: ${{ github.event.inputs.buildAddressables }}
 
-            ${{ github.event.inputs.buildAddressables == 'true' && '☁️ Addressables R2 배포 URL:' || '' }}
+            ${{ github.event.inputs.buildAddressables == 'true' && '☁️ Addressables R2 URL:' || '' }}
             ${{ github.event.inputs.buildAddressables == 'true' && format('{0}/iOS/', secrets.CF_R2_PUBLIC_URL) || '' }}
 
-            📲 아이폰 설치 방법:
-            1. 아래 링크에서 GitHub에 로그인 후 IPA 다운로드
-            2. Apple Configurator 2 (Mac) 또는 AltStore로 설치
+            📲 설치 방법:
+            1. 아래 링크에서 IPA 다운로드
+            2. Apple Configurator 2 또는 AltStore로 설치
             https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-            ⚠️  Ad Hoc 빌드이므로 사전에 UDID가 등록된 기기에서만 설치 가능합니다.
+            ⚠️  Ad Hoc 빌드 - 사전 UDID 등록 기기만 설치 가능
