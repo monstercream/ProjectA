@@ -11,21 +11,33 @@ public class InitController : MonoBehaviour
 {
     [SerializeField] private TextAsset[] jsonDatas;
     [SerializeField] private string[] jsonURL;
-
+    
     private string GetCatalogURL()
     {
-#if UNITY_ANDROID
+        string baseURL = "https://pub-33d511a0e8b74d2e855de0befcdd341f.r2.dev";
+
+#if UNITY_EDITOR
+        // 에디터는 실행 중인 OS 기준으로 플랫폼 결정
+#if UNITY_EDITOR_WIN
+        const string platform = "StandaloneWindows64";
+#elif UNITY_EDITOR_OSX
+        const string platform = "StandaloneOSX";
+#else
+        const string platform = "StandaloneLinux64";
+#endif
+#elif UNITY_ANDROID
     const string platform = "Android";
 #elif UNITY_IOS
     const string platform = "iOS";
 #elif UNITY_WEBGL
     const string platform = "WebGL";
 #elif UNITY_STANDALONE_OSX
-        const string platform = "StandaloneOSX";
+    const string platform = "StandaloneOSX";
 #else
     const string platform = "StandaloneWindows64";
 #endif
-        return $"https://pub-33d511a0e8b74d2e855de0befcdd341f.r2.dev/{platform}/catalog.bin";
+
+        return $"{baseURL}/{platform}/catalog.bin";
     }
 
     private INetworkSystem networkSystem;
