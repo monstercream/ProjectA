@@ -78,64 +78,68 @@ jobs:
       - name: 🔓 빌드 결과물 권한 복구
         run: sudo chown -R "$(id -u):$(id -g)" ProjectA/
 
-     - name: 📂 Addressables 결과물 복사
-  run: |
-    set -euo pipefail
+      - name: 📂 Addressables 결과물 복사
+        run: |
+          set -euo pipefail
 
-    mkdir -p ProjectA/ServerData
+          mkdir -p ProjectA/ServerData
 
-    PLATFORM="${{ github.event.inputs.targetPlatform }}"
-    AA_BASE="ProjectA/Library/com.unity.addressables/aa"
+          PLATFORM="${{ github.event.inputs.targetPlatform }}"
+          AA_BASE="ProjectA/Library/com.unity.addressables/aa"
 
-    echo "=== Addressables 전체 파일 구조 (디버그) ==="
-    find "$AA_BASE" -type f | sort   # ← 디렉토리뿐 아니라 파일까지 출력
+          echo "=== Addressables 전체 파일 구조 (디버그) ==="
+          find "$AA_BASE" -type f | sort
 
-    case "$PLATFORM" in
-      StandaloneWindows64) SHORT="Windows" ;;
-      StandaloneOSX)       SHORT="OSX" ;;
-      Android)             SHORT="Android" ;;
-      WebGL)               SHORT="WebGL" ;;
-      iOS)                 SHORT="iOS" ;;
-      *)                   SHORT="$PLATFORM" ;;
-    esac
+          # Unity Addressables 실제 출력 경로 매핑
+          # 구조: aa/{ShortName}/{FullPlatformName}/
+          case "$PLATFORM" in
+            StandaloneWindows64) SHORT="Windows" ;;
+            StandaloneOSX)       SHORT="OSX" ;;
+            Android)             SHORT="Android" ;;
+            WebGL)               SHORT="WebGL" ;;
+            iOS)                 SHORT="iOS" ;;
+            *)                   SHORT="$PLATFORM" ;;
+          esac
 
-    SRC_DIR="$AA_BASE/$SHORT/$PLATFORM"
-    echo "복사 원본 경로: $SRC_DIR"
+          SRC_DIR="$AA_BASE/$SHORT/$PLATFORM"
+          echo "복사 원본 경로: $SRC_DIR"
 
-    if [ ! -d "$SRC_DIR" ]; then
-      echo "❌ 예상 경로 없음: $SRC_DIR"
-      find "$AA_BASE" -maxdepth 4 -type d | sort
-      exit 1
-    fi
+          if [ ! -d "$SRC_DIR" ]; then
+            echo "❌ 예상 경로가 존재하지 않습니다: $SRC_DIR"
+            echo "실제 존재하는 디렉토리:"
+            find "$AA_BASE" -maxdepth 4 -type d | sort
+            exit 1
+          fi
 
-    # ── 번들 복사 (중첩 폴더 없이 flat하게) ──────────────────
-    # SRC_DIR 안의 파일만 복사, 하위 폴더 구조는 --no-recursive로 무시
-    find "$SRC_DIR" -type f | while read -r f; do
-      cp "$f" "ProjectA/ServerData/"
-    done
+          # 번들: 중첩 폴더 없이 flat하게 복사
+          echo "=== 번들 파일 복사 ==="
+          find "$SRC_DIR" -type f | while read -r f; do
+            echo "복사: $f"
+            cp "$f" "ProjectA/ServerData/"
+          done
 
-    # ── 카탈로그 / 해시 파일 복사 (상위 경로 포함 전체 탐색) ──
-    echo "=== 카탈로그 탐색 ==="
-    find "$AA_BASE" -type f \( -name "catalog_*.json" -o -name "catalog_*.hash" \) | sort
+          # 카탈로그 / 해시: AA_BASE 전체에서 탐색 후 복사
+          echo "=== 카탈로그 탐색 ==="
+          find "$AA_BASE" -type f \( -name "catalog_*.json" -o -name "catalog_*.hash" \) | sort
 
-    find "$AA_BASE" -type f \( -name "catalog_*.json" -o -name "catalog_*.hash" \) \
-      | while read -r f; do
-          echo "카탈로그 복사: $f → ProjectA/ServerData/"
-          cp "$f" "ProjectA/ServerData/"
-        done
+          find "$AA_BASE" -type f \( -name "catalog_*.json" -o -name "catalog_*.hash" \) \
+            | while read -r f; do
+                echo "카탈로그 복사: $f"
+                cp "$f" "ProjectA/ServerData/"
+              done
 
-    echo "=== 복사된 파일 목록 ==="
-    find ProjectA/ServerData -type f | sort
+          echo "=== 복사된 파일 목록 ==="
+          find ProjectA/ServerData -type f | sort
 
-    BUNDLE_COUNT=$(find ProjectA/ServerData -name "*.bundle" | wc -l)
-    CATALOG_COUNT=$(find ProjectA/ServerData -name "catalog_*.json" | wc -l)
-    echo "번들: ${BUNDLE_COUNT}개, 카탈로그: ${CATALOG_COUNT}개"
+          BUNDLE_COUNT=$(find ProjectA/ServerData -name "*.bundle" | wc -l)
+          CATALOG_COUNT=$(find ProjectA/ServerData -name "catalog_*.json" | wc -l)
+          echo "번들: ${BUNDLE_COUNT}개, 카탈로그: ${CATALOG_COUNT}개"
 
-    if [ "$BUNDLE_COUNT" -eq 0 ] || [ "$CATALOG_COUNT" -eq 0 ]; then
-      echo "❌ 번들 또는 카탈로그 파일이 없습니다."
-      exit 1
-    fi
-    echo "✅ 복사 완료"
+          if [ "$BUNDLE_COUNT" -eq 0 ] || [ "$CATALOG_COUNT" -eq 0 ]; then
+            echo "❌ 번들 또는 카탈로그 파일이 없습니다. Addressables 빌드를 확인하세요."
+            exit 1
+          fi
+          echo "✅ 복사 완료"
 
       - name: ☁️ Cloudflare R2에 Addressables 배포
         env:
@@ -166,8 +170,7 @@ jobs:
           PUBLIC_URL="${{ secrets.CF_R2_PUBLIC_URL }}"
           PLATFORM="${{ github.event.inputs.targetPlatform }}"
 
-          # 실제 업로드 경로 기준으로 상대경로 유지하여 URL 생성
-          HASH_FILE=$(find ProjectA/ServerData -name "*.hash" | head -1)
+          HASH_FILE=$(find ProjectA/ServerData -name "catalog_*.hash" | head -1)
 
           if [ -z "$HASH_FILE" ]; then
             echo "⚠️  .hash 파일 없음, 검증 건너뜀"
@@ -236,7 +239,6 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ProjectA/Library
-          # Addressables job과 동일한 key → 캐시 재사용으로 속도 향상
           key: Library-${{ github.event.inputs.targetPlatform }}-${{ hashFiles('ProjectA/Assets/**', 'ProjectA/Packages/**', 'ProjectA/ProjectSettings/**') }}
           restore-keys: |
             Library-${{ github.event.inputs.targetPlatform }}-
