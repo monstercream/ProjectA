@@ -82,16 +82,12 @@ jobs:
         run: |
           set -euo pipefail
 
-          mkdir -p ProjectA/ServerData
-
           PLATFORM="${{ github.event.inputs.targetPlatform }}"
           AA_BASE="ProjectA/Library/com.unity.addressables/aa"
 
           echo "=== Addressables 전체 파일 구조 (디버그) ==="
           find "$AA_BASE" -type f | sort
 
-          # Unity Addressables 실제 출력 경로 매핑
-          # 구조: aa/{ShortName}/{FullPlatformName}/
           case "$PLATFORM" in
             StandaloneWindows64) SHORT="Windows" ;;
             StandaloneOSX)       SHORT="OSX" ;;
@@ -101,42 +97,49 @@ jobs:
             *)                   SHORT="$PLATFORM" ;;
           esac
 
-          SRC_DIR="$AA_BASE/$SHORT/$PLATFORM"
-          echo "복사 원본 경로: $SRC_DIR"
+          SRC_DIR="$AA_BASE/$SHORT/$PLATFORM"   # 번들 위치
+          CAT_DIR="$AA_BASE/$SHORT"              # catalog.bin / catalog.hash / settings.json 위치
+
+          echo "번들 원본: $SRC_DIR"
+          echo "카탈로그 원본: $CAT_DIR"
 
           if [ ! -d "$SRC_DIR" ]; then
-            echo "❌ 예상 경로가 존재하지 않습니다: $SRC_DIR"
-            echo "실제 존재하는 디렉토리:"
+            echo "❌ 번들 경로가 없습니다: $SRC_DIR"
             find "$AA_BASE" -maxdepth 4 -type d | sort
             exit 1
           fi
 
-          # 번들: 중첩 폴더 없이 flat하게 복사
+          # 이전 잔여 파일 제거 후 새로 생성
+          rm -rf ProjectA/ServerData
+          mkdir -p ProjectA/ServerData
+
+          # 번들 복사 (flat, 하위 폴더 없이)
           echo "=== 번들 파일 복사 ==="
-          find "$SRC_DIR" -type f | while read -r f; do
+          find "$SRC_DIR" -type f -name "*.bundle" | while read -r f; do
             echo "복사: $f"
             cp "$f" "ProjectA/ServerData/"
           done
 
-          # 카탈로그 / 해시: AA_BASE 전체에서 탐색 후 복사
-          echo "=== 카탈로그 탐색 ==="
-          find "$AA_BASE" -type f \( -name "catalog_*.json" -o -name "catalog_*.hash" \) | sort
-
-          find "$AA_BASE" -type f \( -name "catalog_*.json" -o -name "catalog_*.hash" \) \
-            | while read -r f; do
-                echo "카탈로그 복사: $f"
-                cp "$f" "ProjectA/ServerData/"
-              done
+          # 카탈로그 복사 (catalog.bin / catalog.hash / settings.json)
+          echo "=== 카탈로그 파일 복사 ==="
+          for f in "$CAT_DIR/catalog.bin" "$CAT_DIR/catalog.hash" "$CAT_DIR/settings.json"; do
+            if [ -f "$f" ]; then
+              echo "복사: $f"
+              cp "$f" "ProjectA/ServerData/"
+            else
+              echo "⚠️  파일 없음 (선택적): $f"
+            fi
+          done
 
           echo "=== 복사된 파일 목록 ==="
           find ProjectA/ServerData -type f | sort
 
           BUNDLE_COUNT=$(find ProjectA/ServerData -name "*.bundle" | wc -l)
-          CATALOG_COUNT=$(find ProjectA/ServerData -name "catalog_*.json" | wc -l)
+          CATALOG_COUNT=$(find ProjectA/ServerData -name "catalog.bin" | wc -l)
           echo "번들: ${BUNDLE_COUNT}개, 카탈로그: ${CATALOG_COUNT}개"
 
           if [ "$BUNDLE_COUNT" -eq 0 ] || [ "$CATALOG_COUNT" -eq 0 ]; then
-            echo "❌ 번들 또는 카탈로그 파일이 없습니다. Addressables 빌드를 확인하세요."
+            echo "❌ 번들 또는 catalog.bin이 없습니다."
             exit 1
           fi
           echo "✅ 복사 완료"
@@ -170,16 +173,15 @@ jobs:
           PUBLIC_URL="${{ secrets.CF_R2_PUBLIC_URL }}"
           PLATFORM="${{ github.event.inputs.targetPlatform }}"
 
-          HASH_FILE=$(find ProjectA/ServerData -name "catalog_*.hash" | head -1)
+          # catalog.hash로 접근 검증
+          HASH_FILE="ProjectA/ServerData/catalog.hash"
 
-          if [ -z "$HASH_FILE" ]; then
-            echo "⚠️  .hash 파일 없음, 검증 건너뜀"
+          if [ ! -f "$HASH_FILE" ]; then
+            echo "⚠️  catalog.hash 없음, 검증 건너뜀"
             exit 0
           fi
 
-          # ServerData/ 이후 상대 경로로 URL 조립
-          REL_PATH="${HASH_FILE#ProjectA/ServerData/}"
-          FULL_URL="$PUBLIC_URL/$PLATFORM/$REL_PATH"
+          FULL_URL="$PUBLIC_URL/$PLATFORM/catalog.hash"
           echo "검증 URL: $FULL_URL"
 
           HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$FULL_URL")
@@ -187,7 +189,6 @@ jobs:
 
           if [ "$HTTP_STATUS" != "200" ]; then
             echo "❌ R2 퍼블릭 접근 실패 (HTTP $HTTP_STATUS)"
-            echo "   R2 버킷 퍼블릭 도메인 설정을 확인하세요."
             exit 1
           fi
           echo "✅ R2 퍼블릭 접근 정상"
