@@ -86,7 +86,6 @@ jobs:
           echo "=== Addressables 전체 파일 구조 (디버그) ==="
           find "$AA_BASE" -type f | sort
 
-          # 플랫폼별 short name 매핑
           case "$PLATFORM" in
             StandaloneWindows64) SHORT="Windows" ;;
             StandaloneOSX)       SHORT="OSX" ;;
@@ -96,14 +95,9 @@ jobs:
             *)                   SHORT="$PLATFORM" ;;
           esac
 
-          # ──────────────────────────────────────────────────
-          # 번들은 SHORT/PLATFORM 혹은 SHORT 단독 폴더에 있을 수 있음
-          # 실제 경로를 동적으로 탐색
-          # ──────────────────────────────────────────────────
           BUNDLE_DIR=""
           CATALOG_DIR=""
 
-          # 후보 경로 순서대로 탐색
           for candidate in \
             "$AA_BASE/$SHORT/$PLATFORM" \
             "$AA_BASE/$PLATFORM" \
@@ -118,7 +112,6 @@ jobs:
             fi
           done
 
-          # 카탈로그(catalog.bin) 경로 탐색
           CATALOG_PATH=$(find "$AA_BASE" -name "catalog.bin" 2>/dev/null | head -1)
           if [ -n "$CATALOG_PATH" ]; then
             CATALOG_DIR=$(dirname "$CATALOG_PATH")
@@ -137,22 +130,16 @@ jobs:
             exit 1
           fi
 
-          # ──────────────────────────────────────────────────
-          # R2 업로드 구조: s3://bucket/PLATFORM/
-          # 로컬 준비:      ProjectA/ServerData/PLATFORM/
-          # ──────────────────────────────────────────────────
           DEST="ProjectA/ServerData/$PLATFORM"
           rm -rf ProjectA/ServerData
           mkdir -p "$DEST"
 
-          # 번들 복사
           echo "=== 번들 파일 복사 ==="
           find "$BUNDLE_DIR" -name "*.bundle" | while read -r f; do
             echo "  복사: $(basename $f)"
             cp "$f" "$DEST/"
           done
 
-          # 카탈로그 관련 파일 복사 (catalog.bin, catalog.hash, settings.json)
           echo "=== 카탈로그 파일 복사 ==="
           for f in "$CATALOG_DIR/catalog.bin" "$CATALOG_DIR/catalog.hash" "$CATALOG_DIR/settings.json"; do
             if [ -f "$f" ]; then
@@ -191,7 +178,6 @@ jobs:
 
           PLATFORM="${{ github.event.inputs.targetPlatform }}"
 
-          # --delete: 구버전 번들(해시 변경된 파일) 자동 제거
           aws s3 sync "ProjectA/ServerData/$PLATFORM/" \
             "s3://${{ secrets.CF_R2_BUCKET_NAME }}/$PLATFORM/" \
             --endpoint-url "${{ secrets.CF_R2_ENDPOINT }}" \
@@ -208,6 +194,9 @@ jobs:
             --recursive
 
       - name: 🔍 R2 catalog 접근 검증
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.CF_R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.CF_R2_SECRET_ACCESS_KEY }}
         run: |
           set -euo pipefail
 
@@ -220,7 +209,6 @@ jobs:
             exit 0
           fi
 
-          # catalog.bin 접근 검증 (더 중요한 파일)
           for FILE in "catalog.bin" "catalog.hash"; do
             FULL_URL="$PUBLIC_URL/$PLATFORM/$FILE"
             echo "검증 URL: $FULL_URL"
@@ -233,7 +221,6 @@ jobs:
             echo "✅ $FILE 접근 정상"
           done
 
-          # 번들 파일 1개 샘플 검증
           SAMPLE_BUNDLE=$(aws s3 ls \
             "s3://${{ secrets.CF_R2_BUCKET_NAME }}/$PLATFORM/" \
             --endpoint-url "${{ secrets.CF_R2_ENDPOINT }}" \
