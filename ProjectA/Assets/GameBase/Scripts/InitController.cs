@@ -17,7 +17,6 @@ public class InitController : MonoBehaviour
         string baseURL = "https://pub-33d511a0e8b74d2e855de0befcdd341f.r2.dev";
 
 #if UNITY_EDITOR
-        // 에디터는 실행 중인 OS 기준으로 플랫폼 결정
 #if UNITY_EDITOR_WIN
         const string platform = "StandaloneWindows64";
 #elif UNITY_EDITOR_OSX
@@ -26,15 +25,15 @@ public class InitController : MonoBehaviour
         const string platform = "StandaloneLinux64";
 #endif
 #elif UNITY_ANDROID
-    const string platform = "Android";
+        const string platform = "Android";
 #elif UNITY_IOS
-    const string platform = "iOS";
+        const string platform = "iOS";
 #elif UNITY_WEBGL
-    const string platform = "WebGL";
+        const string platform = "WebGL";
 #elif UNITY_STANDALONE_OSX
-    const string platform = "StandaloneOSX";
+        const string platform = "StandaloneOSX";
 #else
-    const string platform = "StandaloneWindows64";
+        const string platform = "StandaloneWindows64";
 #endif
 
         return $"{baseURL}/{platform}/catalog.bin";
@@ -72,7 +71,6 @@ public class InitController : MonoBehaviour
         }
     }
 
-// LoadRemoteCatalog도 동일한 패턴으로 수정
     private async Task LoadRemoteCatalog()
     {
         if (string.IsNullOrEmpty(GetCatalogURL()))
@@ -86,7 +84,6 @@ public class InitController : MonoBehaviour
             var handle = Addressables.LoadContentCatalogAsync(GetCatalogURL(), false);
             await handle.Task;
 
-            // handle이 release되기 전에 Status 체크
             if (handle.Status != AsyncOperationStatus.Succeeded)
             {
                 var ex = handle.OperationException;
@@ -100,6 +97,50 @@ public class InitController : MonoBehaviour
         catch (Exception e)
         {
             throw new Exception($"원격 카탈로그 로드 실패: {e.Message}");
+        }
+    }
+
+    private async Task UpdateCatalog()
+    {
+        try
+        {
+            var checkHandle = Addressables.CheckForCatalogUpdates(false);
+            await checkHandle.Task;
+
+            if (checkHandle.Status != AsyncOperationStatus.Succeeded)
+            {
+                Addressables.Release(checkHandle);
+                Debug.LogWarning("카탈로그 업데이트 확인 실패 - 기존 카탈로그로 진행합니다.");
+                return;
+            }
+
+            var catalogsToUpdate = checkHandle.Result;
+            Addressables.Release(checkHandle);
+
+            if (catalogsToUpdate == null || catalogsToUpdate.Count == 0)
+            {
+                Debug.Log("업데이트할 카탈로그 없음");
+                return;
+            }
+
+            Debug.Log($"카탈로그 업데이트 대상: {catalogsToUpdate.Count}개");
+
+            var updateHandle = Addressables.UpdateCatalogs(catalogsToUpdate, false);
+            await updateHandle.Task;
+
+            if (updateHandle.Status != AsyncOperationStatus.Succeeded)
+            {
+                var ex = updateHandle.OperationException;
+                Addressables.Release(updateHandle);
+                throw new Exception($"카탈로그 업데이트 실패: {ex}");
+            }
+
+            Addressables.Release(updateHandle);
+            Debug.Log("카탈로그 업데이트 완료");
+        }
+        catch (Exception e)
+        {
+            throw new Exception($"카탈로그 업데이트 중 오류: {e.Message}");
         }
     }
 
@@ -128,6 +169,7 @@ public class InitController : MonoBehaviour
             }, "로딩 시작...", false),
             (() => InitializeAddressables(), "에셋 시스템 초기화 중...", true),
             (() => LoadRemoteCatalog(), "에셋 카탈로그 로드 중...", true),
+            (() => UpdateCatalog(), "에셋 카탈로그 업데이트 중...", true),
             (() => networkSystem.Login("7789B", "42779113-0012-58F2-939B-0870AFAE582E"), "로그인 중...", true),
             (() => networkSystem.ExecuteScript("Test"), "스크립트 실행 중...", true),
             (() => networkSystem.TitleData(), "타이틀 데이터 로드 중...", true),

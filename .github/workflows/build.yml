@@ -23,7 +23,6 @@ on:
           - 'true'
           - 'false'
 
-# 동일 플랫폼 동시 실행 방지 - 새 실행이 오면 이전 취소
 concurrency:
   group: unity-build-${{ github.event.inputs.targetPlatform }}
   cancel-in-progress: true
@@ -74,11 +73,10 @@ jobs:
           buildMethod: AddressablesBuildScript.BuildAddressables
           versioning: None
 
-      # game-ci/unity-builder는 Docker를 root로 실행하므로 권한 복구 필수
       - name: 🔓 빌드 결과물 권한 복구
         run: sudo chown -R "$(id -u):$(id -g)" ProjectA/
 
-      - name: 📂 Addressables 결과물 복사
+      - name: 📂 Addressables 결과물 확인 및 복사
         run: |
           set -euo pipefail
 
@@ -88,6 +86,7 @@ jobs:
           echo "=== Addressables 전체 파일 구조 (디버그) ==="
           find "$AA_BASE" -type f | sort
 
+          # 플랫폼별 short name 매핑
           case "$PLATFORM" in
             StandaloneWindows64) SHORT="Windows" ;;
             StandaloneOSX)       SHORT="OSX" ;;
@@ -97,49 +96,88 @@ jobs:
             *)                   SHORT="$PLATFORM" ;;
           esac
 
-          SRC_DIR="$AA_BASE/$SHORT/$PLATFORM"   # 번들 위치
-          CAT_DIR="$AA_BASE/$SHORT"              # catalog.bin / catalog.hash / settings.json 위치
+          # ──────────────────────────────────────────────────
+          # 번들은 SHORT/PLATFORM 혹은 SHORT 단독 폴더에 있을 수 있음
+          # 실제 경로를 동적으로 탐색
+          # ──────────────────────────────────────────────────
+          BUNDLE_DIR=""
+          CATALOG_DIR=""
 
-          echo "번들 원본: $SRC_DIR"
-          echo "카탈로그 원본: $CAT_DIR"
-
-          if [ ! -d "$SRC_DIR" ]; then
-            echo "❌ 번들 경로가 없습니다: $SRC_DIR"
-            find "$AA_BASE" -maxdepth 4 -type d | sort
-            exit 1
-          fi
-
-          # 이전 잔여 파일 제거 후 새로 생성
-          rm -rf ProjectA/ServerData
-          mkdir -p ProjectA/ServerData
-
-          # 번들 복사 (flat, 하위 폴더 없이)
-          echo "=== 번들 파일 복사 ==="
-          find "$SRC_DIR" -type f -name "*.bundle" | while read -r f; do
-            echo "복사: $f"
-            cp "$f" "ProjectA/ServerData/"
-          done
-
-          # 카탈로그 복사 (catalog.bin / catalog.hash / settings.json)
-          echo "=== 카탈로그 파일 복사 ==="
-          for f in "$CAT_DIR/catalog.bin" "$CAT_DIR/catalog.hash" "$CAT_DIR/settings.json"; do
-            if [ -f "$f" ]; then
-              echo "복사: $f"
-              cp "$f" "ProjectA/ServerData/"
-            else
-              echo "⚠️  파일 없음 (선택적): $f"
+          # 후보 경로 순서대로 탐색
+          for candidate in \
+            "$AA_BASE/$SHORT/$PLATFORM" \
+            "$AA_BASE/$PLATFORM" \
+            "$AA_BASE/$SHORT" \
+            "$AA_BASE"
+          do
+            BUNDLE_COUNT=$(find "$candidate" -maxdepth 1 -name "*.bundle" 2>/dev/null | wc -l)
+            if [ "$BUNDLE_COUNT" -gt 0 ]; then
+              BUNDLE_DIR="$candidate"
+              echo "✅ 번들 경로 발견: $BUNDLE_DIR (${BUNDLE_COUNT}개)"
+              break
             fi
           done
 
-          echo "=== 복사된 파일 목록 ==="
+          # 카탈로그(catalog.bin) 경로 탐색
+          CATALOG_PATH=$(find "$AA_BASE" -name "catalog.bin" 2>/dev/null | head -1)
+          if [ -n "$CATALOG_PATH" ]; then
+            CATALOG_DIR=$(dirname "$CATALOG_PATH")
+            echo "✅ 카탈로그 경로 발견: $CATALOG_DIR"
+          fi
+
+          if [ -z "$BUNDLE_DIR" ]; then
+            echo "❌ 번들 파일을 찾을 수 없습니다."
+            find "$AA_BASE" -maxdepth 5 -type d | sort
+            exit 1
+          fi
+
+          if [ -z "$CATALOG_DIR" ]; then
+            echo "❌ catalog.bin을 찾을 수 없습니다."
+            find "$AA_BASE" -maxdepth 5 -name "catalog.*" | sort
+            exit 1
+          fi
+
+          # ──────────────────────────────────────────────────
+          # R2 업로드 구조: s3://bucket/PLATFORM/
+          # 로컬 준비:      ProjectA/ServerData/PLATFORM/
+          # ──────────────────────────────────────────────────
+          DEST="ProjectA/ServerData/$PLATFORM"
+          rm -rf ProjectA/ServerData
+          mkdir -p "$DEST"
+
+          # 번들 복사
+          echo "=== 번들 파일 복사 ==="
+          find "$BUNDLE_DIR" -name "*.bundle" | while read -r f; do
+            echo "  복사: $(basename $f)"
+            cp "$f" "$DEST/"
+          done
+
+          # 카탈로그 관련 파일 복사 (catalog.bin, catalog.hash, settings.json)
+          echo "=== 카탈로그 파일 복사 ==="
+          for f in "$CATALOG_DIR/catalog.bin" "$CATALOG_DIR/catalog.hash" "$CATALOG_DIR/settings.json"; do
+            if [ -f "$f" ]; then
+              echo "  복사: $(basename $f)"
+              cp "$f" "$DEST/"
+            else
+              echo "  ⚠️  없음(선택적): $(basename $f)"
+            fi
+          done
+
+          echo ""
+          echo "=== 최종 업로드 대상 파일 목록 ==="
           find ProjectA/ServerData -type f | sort
 
-          BUNDLE_COUNT=$(find ProjectA/ServerData -name "*.bundle" | wc -l)
-          CATALOG_COUNT=$(find ProjectA/ServerData -name "catalog.bin" | wc -l)
-          echo "번들: ${BUNDLE_COUNT}개, 카탈로그: ${CATALOG_COUNT}개"
+          BUNDLE_COUNT=$(find "$DEST" -name "*.bundle" | wc -l)
+          CATALOG_COUNT=$(find "$DEST" -name "catalog.bin" | wc -l)
+          echo ""
+          echo "번들: ${BUNDLE_COUNT}개 / 카탈로그: ${CATALOG_COUNT}개"
 
-          if [ "$BUNDLE_COUNT" -eq 0 ] || [ "$CATALOG_COUNT" -eq 0 ]; then
-            echo "❌ 번들 또는 catalog.bin이 없습니다."
+          if [ "$BUNDLE_COUNT" -eq 0 ]; then
+            echo "❌ 번들 파일이 없습니다."
+            exit 1
+          fi
+          if [ "$CATALOG_COUNT" -eq 0 ]; then
+            echo "❌ catalog.bin이 없습니다."
             exit 1
           fi
           echo "✅ 복사 완료"
@@ -151,18 +189,21 @@ jobs:
         run: |
           set -euo pipefail
 
-          aws s3 sync "ProjectA/ServerData/" \
-            "s3://${{ secrets.CF_R2_BUCKET_NAME }}/${{ github.event.inputs.targetPlatform }}/" \
+          PLATFORM="${{ github.event.inputs.targetPlatform }}"
+
+          # --delete: 구버전 번들(해시 변경된 파일) 자동 제거
+          aws s3 sync "ProjectA/ServerData/$PLATFORM/" \
+            "s3://${{ secrets.CF_R2_BUCKET_NAME }}/$PLATFORM/" \
             --endpoint-url "${{ secrets.CF_R2_ENDPOINT }}" \
             --delete \
             --no-progress
 
           echo "✅ R2 배포 완료"
-          echo "📡 Public URL: ${{ secrets.CF_R2_PUBLIC_URL }}/${{ github.event.inputs.targetPlatform }}/"
+          echo "📡 Public URL: ${{ secrets.CF_R2_PUBLIC_URL }}/$PLATFORM/"
 
           echo "=== R2 업로드 파일 목록 ==="
           aws s3 ls \
-            "s3://${{ secrets.CF_R2_BUCKET_NAME }}/${{ github.event.inputs.targetPlatform }}/" \
+            "s3://${{ secrets.CF_R2_BUCKET_NAME }}/$PLATFORM/" \
             --endpoint-url "${{ secrets.CF_R2_ENDPOINT }}" \
             --recursive
 
@@ -172,32 +213,49 @@ jobs:
 
           PUBLIC_URL="${{ secrets.CF_R2_PUBLIC_URL }}"
           PLATFORM="${{ github.event.inputs.targetPlatform }}"
-
-          # catalog.hash로 접근 검증
-          HASH_FILE="ProjectA/ServerData/catalog.hash"
+          HASH_FILE="ProjectA/ServerData/$PLATFORM/catalog.hash"
 
           if [ ! -f "$HASH_FILE" ]; then
             echo "⚠️  catalog.hash 없음, 검증 건너뜀"
             exit 0
           fi
 
-          FULL_URL="$PUBLIC_URL/$PLATFORM/catalog.hash"
-          echo "검증 URL: $FULL_URL"
+          # catalog.bin 접근 검증 (더 중요한 파일)
+          for FILE in "catalog.bin" "catalog.hash"; do
+            FULL_URL="$PUBLIC_URL/$PLATFORM/$FILE"
+            echo "검증 URL: $FULL_URL"
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$FULL_URL")
+            echo "HTTP 응답: $HTTP_STATUS"
+            if [ "$HTTP_STATUS" != "200" ]; then
+              echo "❌ R2 퍼블릭 접근 실패 (HTTP $HTTP_STATUS) - $FILE"
+              exit 1
+            fi
+            echo "✅ $FILE 접근 정상"
+          done
 
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$FULL_URL")
-          echo "HTTP 응답: $HTTP_STATUS"
+          # 번들 파일 1개 샘플 검증
+          SAMPLE_BUNDLE=$(aws s3 ls \
+            "s3://${{ secrets.CF_R2_BUCKET_NAME }}/$PLATFORM/" \
+            --endpoint-url "${{ secrets.CF_R2_ENDPOINT }}" \
+            | grep ".bundle" | head -1 | awk '{print $4}')
 
-          if [ "$HTTP_STATUS" != "200" ]; then
-            echo "❌ R2 퍼블릭 접근 실패 (HTTP $HTTP_STATUS)"
-            exit 1
+          if [ -n "$SAMPLE_BUNDLE" ]; then
+            BUNDLE_URL="$PUBLIC_URL/$PLATFORM/$SAMPLE_BUNDLE"
+            echo "번들 샘플 검증 URL: $BUNDLE_URL"
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$BUNDLE_URL")
+            echo "HTTP 응답: $HTTP_STATUS"
+            if [ "$HTTP_STATUS" != "200" ]; then
+              echo "❌ 번들 접근 실패 (HTTP $HTTP_STATUS)"
+              exit 1
+            fi
+            echo "✅ 번들 접근 정상"
           fi
-          echo "✅ R2 퍼블릭 접근 정상"
 
       - name: 📤 Addressables 결과물 업로드 (빌드 job 전달용)
         uses: actions/upload-artifact@v4
         with:
           name: Addressables-${{ github.event.inputs.targetPlatform }}-${{ github.run_id }}
-          path: ProjectA/ServerData
+          path: ProjectA/ServerData/${{ github.event.inputs.targetPlatform }}
           retention-days: 3
           if-no-files-found: error
 
@@ -234,7 +292,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: Addressables-${{ github.event.inputs.targetPlatform }}-${{ github.run_id }}
-          path: ProjectA/ServerData
+          path: ProjectA/ServerData/${{ github.event.inputs.targetPlatform }}
 
       - name: 💾 Library 캐시
         uses: actions/cache@v3
@@ -329,7 +387,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: Addressables-${{ github.event.inputs.targetPlatform }}-${{ github.run_id }}
-          path: ProjectA/ServerData
+          path: ProjectA/ServerData/${{ github.event.inputs.targetPlatform }}
 
       - name: 💾 Library 캐시
         uses: actions/cache@v3
