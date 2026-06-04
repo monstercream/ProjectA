@@ -6,7 +6,7 @@ on:
       targetPlatform:
         description: '빌드할 플랫폼 선택'
         required: true
-        default: 'StandaloneWindows64'
+        default: 'StandaloneOSX'
         type: choice
         options:
           - StandaloneWindows64
@@ -84,7 +84,23 @@ jobs:
 
           PLATFORM="${{ github.event.inputs.targetPlatform }}"
           PRIMARY_DEST="ProjectA/ServerData/$PLATFORM"
-          FALLBACK_DEST="ProjectA/Library/com.unity.addressables/aa/$PLATFORM"
+
+          # GitHub Actions 입력값 → Unity 내부 폴더명 변환
+          case "$PLATFORM" in
+            StandaloneWindows64) UNITY_PLATFORM="Windows" ;;
+            StandaloneOSX)       UNITY_PLATFORM="OSX" ;;
+            Android)             UNITY_PLATFORM="Android" ;;
+            WebGL)               UNITY_PLATFORM="WebGL" ;;
+            iOS)                 UNITY_PLATFORM="iOS" ;;
+            *)                   UNITY_PLATFORM="$PLATFORM" ;;
+          esac
+
+          FALLBACK_DEST="ProjectA/Library/com.unity.addressables/aa/$UNITY_PLATFORM"
+
+          echo "플랫폼 입력값: $PLATFORM"
+          echo "Unity 내부 폴더명: $UNITY_PLATFORM"
+          echo "Primary 경로: $PRIMARY_DEST"
+          echo "Fallback 경로: $FALLBACK_DEST"
 
           # 실제 결과물 위치 탐색
           if [ -d "$PRIMARY_DEST" ] && find "$PRIMARY_DEST" -name "catalog.bin" | grep -q .; then
