@@ -9,13 +9,15 @@ public static class ViewManager
     private static Canvas rootCanvas;
     private static readonly Dictionary<Type, MonoBehaviour> instances = new();
 
-    public static async Task Initialize()
+    public static Task Initialize()
     {
-        if (isInitialized) return;
+        if (isInitialized) return Task.CompletedTask;
 
         CreateRootCanvas();
         CreateViews();
         isInitialized = true;
+
+        return Task.CompletedTask;
     }
 
     private static void CreateRootCanvas()
@@ -72,7 +74,6 @@ public static class ViewManager
 
         var instance = GameObject.Instantiate(prefab, rootCanvas.transform);
 
-        // RectTransform을 캔버스에 꽉 차게 설정
         var rect = instance.GetComponent<RectTransform>();
         if (rect != null)
         {
