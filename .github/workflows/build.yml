@@ -6,7 +6,6 @@ on:
       targetPlatform:
         description: '빌드할 플랫폼 선택'
         required: true
-        default: 'StandaloneOSX'
         type: choice
         options:
           - StandaloneWindows64
@@ -56,7 +55,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ProjectA/Library
-          key: Library-${{ github.event.inputs.targetPlatform }}-${{ hashFiles('ProjectA/Assets/**', 'ProjectA/Packages/**', 'ProjectA/ProjectSettings/**') }}
+          key: Library-${{ github.event.inputs.targetPlatform }}-${{ hashFiles('ProjectA/Packages/**', 'ProjectA/ProjectSettings/**') }}
           restore-keys: |
             Library-${{ github.event.inputs.targetPlatform }}-
             Library-
@@ -251,7 +250,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ProjectA/Library
-          key: Library-${{ github.event.inputs.targetPlatform }}-${{ hashFiles('ProjectA/Assets/**', 'ProjectA/Packages/**', 'ProjectA/ProjectSettings/**') }}
+          key: Library-${{ github.event.inputs.targetPlatform }}-${{ hashFiles('ProjectA/Packages/**', 'ProjectA/ProjectSettings/**') }}
           restore-keys: |
             Library-${{ github.event.inputs.targetPlatform }}-
             Library-
@@ -346,7 +345,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ProjectA/Library
-          key: Library-iOS-${{ hashFiles('ProjectA/Assets/**', 'ProjectA/Packages/**', 'ProjectA/ProjectSettings/**') }}
+          key: Library-iOS-${{ hashFiles('ProjectA/Packages/**', 'ProjectA/ProjectSettings/**') }}
           restore-keys: |
             Library-iOS-
             Library-
