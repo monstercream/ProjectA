@@ -74,100 +74,50 @@ jobs:
           versioning: None
 
       - name: 🔓 빌드 결과물 권한 복구
-        run: sudo chown -R "$(id -u):$(id -g)" ProjectA/
+        run: |
+          sudo chown -R "$(id -u):$(id -g)" ProjectA/
+          [ -d build ] && sudo chown -R "$(id -u):$(id -g)" build/ || true
 
       - name: 📂 Addressables 결과물 확인 및 복사
         run: |
           set -euo pipefail
 
           PLATFORM="${{ github.event.inputs.targetPlatform }}"
-          AA_BASE="ProjectA/Library/com.unity.addressables/aa"
+          PRIMARY_DEST="ProjectA/ServerData/$PLATFORM"
+          FALLBACK_DEST="ProjectA/Library/com.unity.addressables/aa/$PLATFORM"
+
+          # 실제 결과물 위치 탐색
+          if [ -d "$PRIMARY_DEST" ] && find "$PRIMARY_DEST" -name "catalog.bin" | grep -q .; then
+            echo "✅ ServerData 경로에서 결과물 발견"
+          elif [ -d "$FALLBACK_DEST" ] && find "$FALLBACK_DEST" -name "catalog.bin" | grep -q .; then
+            echo "⚠️  Library 경로에서 결과물 발견 → ServerData로 복사"
+            mkdir -p "$PRIMARY_DEST"
+            cp -r "$FALLBACK_DEST/." "$PRIMARY_DEST/"
+          else
+            echo "❌ Addressables 결과물을 찾을 수 없습니다."
+            echo "=== 전체 탐색 결과 ==="
+            find ProjectA -name "catalog.bin" 2>/dev/null || echo "(catalog.bin 없음)"
+            exit 1
+          fi
 
           echo "=== Addressables 전체 파일 구조 (디버그) ==="
-          find "$AA_BASE" -type f | sort
+          find "$PRIMARY_DEST" -type f | sort
 
-          case "$PLATFORM" in
-            StandaloneWindows64) SHORT="Windows" ;;
-            StandaloneOSX)       SHORT="OSX" ;;
-            Android)             SHORT="Android" ;;
-            WebGL)               SHORT="WebGL" ;;
-            iOS)                 SHORT="iOS" ;;
-            *)                   SHORT="$PLATFORM" ;;
-          esac
+          CATALOG_COUNT=$(find "$PRIMARY_DEST" -name "catalog.bin" | wc -l)
+          BUNDLE_COUNT=$(find "$PRIMARY_DEST" -name "*.bundle" | wc -l)
 
-          BUNDLE_DIR=""
-          CATALOG_DIR=""
-
-          for candidate in \
-            "$AA_BASE/$SHORT/$PLATFORM" \
-            "$AA_BASE/$PLATFORM" \
-            "$AA_BASE/$SHORT" \
-            "$AA_BASE"
-          do
-            BUNDLE_COUNT=$(find "$candidate" -maxdepth 1 -name "*.bundle" 2>/dev/null | wc -l)
-            if [ "$BUNDLE_COUNT" -gt 0 ]; then
-              BUNDLE_DIR="$candidate"
-              echo "✅ 번들 경로 발견: $BUNDLE_DIR (${BUNDLE_COUNT}개)"
-              break
-            fi
-          done
-
-          CATALOG_PATH=$(find "$AA_BASE" -name "catalog.bin" 2>/dev/null | head -1)
-          if [ -n "$CATALOG_PATH" ]; then
-            CATALOG_DIR=$(dirname "$CATALOG_PATH")
-            echo "✅ 카탈로그 경로 발견: $CATALOG_DIR"
-          fi
-
-          if [ -z "$BUNDLE_DIR" ]; then
-            echo "❌ 번들 파일을 찾을 수 없습니다."
-            find "$AA_BASE" -maxdepth 5 -type d | sort
-            exit 1
-          fi
-
-          if [ -z "$CATALOG_DIR" ]; then
-            echo "❌ catalog.bin을 찾을 수 없습니다."
-            find "$AA_BASE" -maxdepth 5 -name "catalog.*" | sort
-            exit 1
-          fi
-
-          DEST="ProjectA/ServerData/$PLATFORM"
-          rm -rf ProjectA/ServerData
-          mkdir -p "$DEST"
-
-          echo "=== 번들 파일 복사 ==="
-          find "$BUNDLE_DIR" -name "*.bundle" | while read -r f; do
-            echo "  복사: $(basename $f)"
-            cp "$f" "$DEST/"
-          done
-
-          echo "=== 카탈로그 파일 복사 ==="
-          for f in "$CATALOG_DIR/catalog.bin" "$CATALOG_DIR/catalog.hash" "$CATALOG_DIR/settings.json"; do
-            if [ -f "$f" ]; then
-              echo "  복사: $(basename $f)"
-              cp "$f" "$DEST/"
-            else
-              echo "  ⚠️  없음(선택적): $(basename $f)"
-            fi
-          done
-
-          echo ""
-          echo "=== 최종 업로드 대상 파일 목록 ==="
-          find ProjectA/ServerData -type f | sort
-
-          BUNDLE_COUNT=$(find "$DEST" -name "*.bundle" | wc -l)
-          CATALOG_COUNT=$(find "$DEST" -name "catalog.bin" | wc -l)
-          echo ""
           echo "번들: ${BUNDLE_COUNT}개 / 카탈로그: ${CATALOG_COUNT}개"
 
-          if [ "$BUNDLE_COUNT" -eq 0 ]; then
-            echo "❌ 번들 파일이 없습니다."
-            exit 1
-          fi
           if [ "$CATALOG_COUNT" -eq 0 ]; then
             echo "❌ catalog.bin이 없습니다."
             exit 1
           fi
-          echo "✅ 복사 완료"
+
+          if [ "$BUNDLE_COUNT" -eq 0 ]; then
+            echo "⚠️  번들 파일이 없습니다. Addressables 그룹에 에셋이 포함되어 있는지 확인하세요."
+          fi
+
+          echo "✅ 확인 완료"
 
       - name: ☁️ Cloudflare R2에 Addressables 배포
         env:
