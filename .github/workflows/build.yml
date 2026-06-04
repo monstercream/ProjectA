@@ -6,6 +6,7 @@ on:
       targetPlatform:
         description: '빌드할 플랫폼 선택'
         required: true
+        default: 'StandaloneOSX'
         type: choice
         options:
           - StandaloneWindows64
@@ -52,7 +53,7 @@ jobs:
           fetch-depth: 1
 
       - name: 💾 Library 캐시
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ProjectA/Library
           key: Library-${{ github.event.inputs.targetPlatform }}-${{ hashFiles('ProjectA/Packages/**', 'ProjectA/ProjectSettings/**') }}
@@ -247,7 +248,7 @@ jobs:
           path: ProjectA/ServerData/${{ github.event.inputs.targetPlatform }}
 
       - name: 💾 Library 캐시
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ProjectA/Library
           key: Library-${{ github.event.inputs.targetPlatform }}-${{ hashFiles('ProjectA/Packages/**', 'ProjectA/ProjectSettings/**') }}
@@ -265,7 +266,6 @@ jobs:
           targetPlatform: ${{ github.event.inputs.targetPlatform }}
           projectPath: ProjectA
           versioning: None
-          buildVersion: ${{ github.run_number }}
 
       - name: 🔓 빌드 결과물 권한 복구
         run: sudo chown -R "$(id -u):$(id -g)" build/ ProjectA/Library
@@ -279,7 +279,7 @@ jobs:
 
       - name: 📧 빌드 완료 이메일 발송
         if: always()
-        uses: dawidd6/action-send-mail@v3
+        uses: dawidd6/action-send-mail@v4
         with:
           server_address: smtp.gmail.com
           server_port: 465
@@ -342,7 +342,7 @@ jobs:
           path: ProjectA/ServerData/${{ github.event.inputs.targetPlatform }}
 
       - name: 💾 Library 캐시
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ProjectA/Library
           key: Library-iOS-${{ hashFiles('ProjectA/Packages/**', 'ProjectA/ProjectSettings/**') }}
@@ -360,7 +360,6 @@ jobs:
           targetPlatform: iOS
           projectPath: ProjectA
           versioning: None
-          buildVersion: ${{ github.run_number }}
 
       - name: 🔓 빌드 결과물 권한 복구
         run: sudo chown -R "$(id -u):$(id -g)" build/ ProjectA/Library
@@ -467,7 +466,7 @@ jobs:
 
       - name: 📧 빌드 완료 이메일 발송
         if: always()
-        uses: dawidd6/action-send-mail@v3
+        uses: dawidd6/action-send-mail@v4
         with:
           server_address: smtp.gmail.com
           server_port: 465
