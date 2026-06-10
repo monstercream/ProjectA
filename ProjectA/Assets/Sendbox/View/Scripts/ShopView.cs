@@ -1,16 +1,19 @@
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class ShopView : MonoBehaviour, IShopView
+public class ShopView : BaseView
 {
     [SerializeField] private Button backButton;
     public void Dispose()
     {
     }
 
-    public void Display()
+    public override void Show()
     {
-        gameObject.SetActive(true);
+        base.Show();
+        transform.DOLocalMoveY(-2000, 0);
+        transform.DOLocalMoveY(0, 0.3f);
     }
 
     public void Hide()

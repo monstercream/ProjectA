@@ -1,119 +1,88 @@
-using UnityEngine;
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
+using UnityEngine;
 
-public static class ViewManager
+public class ViewManager : MonoBehaviour
 {
-    private static bool isInitialized;
-    private static Canvas rootCanvas;
-    private static readonly Dictionary<Type, MonoBehaviour> instances = new();
+    public static ViewManager Instance { get; private set; }
 
-    public static Task Initialize()
+    private Dictionary<Type, BaseView> views = new();
+
+    public static ViewManager GetOrCreate()
     {
-        if (isInitialized) return Task.CompletedTask;
+        if (Instance != null) return Instance;
 
-        CreateRootCanvas();
-        CreateViews();
-        isInitialized = true;
+        // 씬에 이미 있으면 찾아서 반환
+        var existing = FindObjectOfType<ViewManager>();
+        if (existing != null) return existing;
 
-        return Task.CompletedTask;
+        // 없으면 자동 생성
+        var go = new GameObject("ViewManager");
+        DontDestroyOnLoad(go);
+        return go.AddComponent<ViewManager>();
     }
 
-    private static void CreateRootCanvas()
+    private void Awake()
     {
-        var canvasObject = new GameObject("ViewManager_Canvas");
-        GameObject.DontDestroyOnLoad(canvasObject);
-
-        rootCanvas = canvasObject.AddComponent<Canvas>();
-        rootCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        rootCanvas.sortingOrder = 0;
-
-        var scaler = canvasObject.AddComponent<UnityEngine.UI.CanvasScaler>();
-        scaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(2560, 1440);
-        scaler.matchWidthOrHeight = 0.5f;
-
-        canvasObject.AddComponent<UnityEngine.UI.GraphicRaycaster>();
-    }
-
-    private static void CreateViews()
-    {
-        Register<ILobbyView, LobbyView>();
-        Register<ILoadingView, LoadingView>();
-        Register<ISystemPopupView, SystemPopupView>();
-        Register<IInventoryView, InventoryView>();
-        Register<IShopView, ShopView>();
-        Register<ISkillView, SkillView>();
-        Register<ICharactersView, CharactersView>();
-        Register<IOptionView, OptionView>();
-        Register<IStageSelectionView, StageSelectionView>();
-        Register<IIngameView, IngameView>();
-        Register<IPauseView, PauseView>();
-    }
-
-    private static void Register<TInterface, TConcrete>()
-        where TInterface : IView
-        where TConcrete : MonoBehaviour, TInterface
-    {
-        var interfaceType = typeof(TInterface);
-        var concreteName = typeof(TConcrete).Name;
-
-        if (instances.ContainsKey(interfaceType))
+        if (Instance != null && Instance != this)
         {
-            Debug.LogWarning($"[ViewManager] {interfaceType.Name}은 이미 등록되어 있습니다.");
+            Destroy(gameObject);
             return;
         }
 
-        var prefab = Resources.Load<TConcrete>(concreteName);
-        if (prefab == null)
-        {
-            Debug.LogError($"[ViewManager] Resources/{concreteName} 프리팹을 찾을 수 없습니다.");
-            return;
-        }
-
-        var instance = GameObject.Instantiate(prefab, rootCanvas.transform);
-
-        var rect = instance.GetComponent<RectTransform>();
-        if (rect != null)
-        {
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
-        }
-
-        instance.Hide();
-        instances[interfaceType] = instance;
+        Instance = this;
+        RegisterAllViewsInScene();
     }
 
-    public static TInterface Get<TInterface>() where TInterface : class, IView
+    // 씬 전체에서 BaseView를 찾아 자식으로 편입 후 등록
+    private void RegisterAllViewsInScene()
     {
-        var interfaceType = typeof(TInterface);
+        var allViews = FindObjectsOfType<BaseView>(true);
 
-        if (instances.TryGetValue(interfaceType, out var instance))
-            return instance as TInterface;
+        foreach (var view in allViews)
+        {
+            // 이미 내 자식이면 스킵
+            if (view.transform.parent == transform) continue;
 
-        Debug.LogError($"[ViewManager] {interfaceType.Name}이 등록되지 않았습니다.");
+            // 자식으로 편입
+            view.transform.SetParent(transform, worldPositionStays: false);
+        }
+
+        // 자식 등록
+        foreach (var view in GetComponentsInChildren<BaseView>(true))
+        {
+            views[view.GetType()] = view;
+            Debug.Log($"[ViewManager] 등록: {view.GetType().Name}");
+        }
+    }
+
+    public T Show<T>() where T : BaseView
+    {
+        if (views.TryGetValue(typeof(T), out var view))
+        {
+            view.Show();
+            return view as T;
+        }
+
+        Debug.LogError($"[ViewManager] View not found: {typeof(T).Name}");
         return null;
     }
 
-    public static bool IsInitialized() => isInitialized;
-
-    public static void Dispose()
+    public void Hide<T>() where T : BaseView
     {
-        foreach (var instance in instances.Values)
-        {
-            if (instance != null)
-                GameObject.Destroy(instance.gameObject);
-        }
+        if (views.TryGetValue(typeof(T), out var view))
+            view.Hide();
+    }
 
-        instances.Clear();
+    public void HideAll()
+    {
+        foreach (var view in views.Values)
+            view.Hide();
+    }
 
-        if (rootCanvas != null)
-            GameObject.Destroy(rootCanvas.gameObject);
-
-        rootCanvas = null;
-        isInitialized = false;
+    public T Get<T>() where T : BaseView
+    {
+        views.TryGetValue(typeof(T), out var view);
+        return view as T;
     }
 }

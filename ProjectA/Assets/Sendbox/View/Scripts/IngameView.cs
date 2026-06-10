@@ -1,11 +1,12 @@
 using System;
 using System.Threading.Tasks;
+using DG.Tweening;
 using JsonModel;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
-public class IngameView : MonoBehaviour, IIngameView
+public class IngameView : BaseView
 {
     [SerializeField] private Button AccelateButton;
     [SerializeField] private Button BrakeButton;
@@ -32,8 +33,8 @@ public class IngameView : MonoBehaviour, IIngameView
     private InputAction brakeAction;
     private InputAction steerLeftAction;
     private InputAction steerRightAction;
-    private IPauseView pauseView;
-    private ILobbyView lobbyView;
+    private PauseView pauseView;
+    private LobbyView lobbyView;
     private GameObject stage;
     private GameObject car;
     private GameObject miniMap;
@@ -43,8 +44,8 @@ public class IngameView : MonoBehaviour, IIngameView
     {
         addressableManager = SystemsManager.Get<IAddressableManager>();
         cameraSystem = SystemsManager.Get<ICameraSystem>();
-        pauseView = ViewManager.Get<IPauseView>();
-        lobbyView = ViewManager.Get<ILobbyView>();
+        pauseView = ViewManager.Instance.Show<PauseView>();
+        lobbyView = ViewManager.Instance.Show<LobbyView>();
         stageModel = model;
         pauseView.Initialize(Resume, Restart, Quit);
         
@@ -109,7 +110,7 @@ public class IngameView : MonoBehaviour, IIngameView
     public void OnPauseButtonClick()
     {
         Hide();
-        pauseView.Display();
+        pauseView.Show();
     }
 
     public void OnCameraButtonClick()
@@ -147,22 +148,27 @@ public class IngameView : MonoBehaviour, IIngameView
 
     private void Resume()
     {
-        Display();
+        Show();
     }
 
     private async void Restart()
     {
         await RaceFinished();
         await RaceSetting(stageModel);
-        Display();
+        Show();
     }
 
     private async void Quit()
     {
         await RaceFinished();
-        lobbyView.Display();
+        lobbyView.Show();
     }
 
-    public void Display() => gameObject.SetActive(true);
+    public override void Show()
+    {
+        base.Show();
+        transform.DOLocalMoveY(-2000, 0);
+        transform.DOLocalMoveY(0, 0.3f);
+    }
     public void Hide() => gameObject.SetActive(false);
 }

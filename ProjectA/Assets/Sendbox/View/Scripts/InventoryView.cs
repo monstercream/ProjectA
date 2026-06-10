@@ -1,9 +1,11 @@
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class InventoryView : MonoBehaviour, IInventoryView
+public class InventoryView : BaseView
 {
     [SerializeField] private Button closeButton;
+
     public void Dispose()
     {
     }
@@ -13,9 +15,11 @@ public class InventoryView : MonoBehaviour, IInventoryView
         closeButton.onClick.AddListener(Hide);
     }
 
-    public void Display()
+    public override void Show()
     {
-        gameObject.SetActive(true);
+        base.Show();
+        transform.DOLocalMoveY(-2000, 0);
+        transform.DOLocalMoveY(0, 0.3f);
     }
 
     public void Hide()

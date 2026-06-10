@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using DG.Tweening;
 
-public class SystemPopupView : MonoBehaviour, ISystemPopupView
+public class SystemPopupView : BaseView
 {
     [SerializeField] private TMP_Text titleText;
     [SerializeField] private TMP_Text messageText;
@@ -21,12 +21,15 @@ public class SystemPopupView : MonoBehaviour, ISystemPopupView
         originPosition = rectTransform.anchoredPosition;
     }
 
-    public void Display()
+    public override void Show()
     {
-        gameObject.SetActive(true);
+        base.Show();
+        transform.DOLocalMoveY(-2000, 0);
+        transform.DOLocalMoveY(0, 0.3f);
         rectTransform.anchoredPosition = originPosition + Vector2.up * slideDistance;
         rectTransform.DOAnchorPos(originPosition, animDuration).SetEase(Ease.OutBack);
     }
+
 
     public void Hide()
     {

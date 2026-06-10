@@ -11,59 +11,103 @@ public class InitController : MonoBehaviour
 {
     [SerializeField] private TextAsset[] jsonDatas;
     [SerializeField] private string[] jsonURL;
-    
-    private string GetCatalogURL()
-    {
-        string baseURL = "https://pub-33d511a0e8b74d2e855de0befcdd341f.r2.dev";
-
-#if UNITY_EDITOR
-#if UNITY_EDITOR_WIN
-        const string platform = "StandaloneWindows64";
-#elif UNITY_EDITOR_OSX
-        const string platform = "StandaloneOSX";
-#else
-        const string platform = "StandaloneLinux64";
-#endif
-#elif UNITY_ANDROID
-        const string platform = "Android";
-#elif UNITY_IOS
-        const string platform = "iOS";
-#elif UNITY_WEBGL
-        const string platform = "WebGL";
-#elif UNITY_STANDALONE_OSX
-        const string platform = "StandaloneOSX";
-#else
-        const string platform = "StandaloneWindows64";
-#endif
-
-        return $"{baseURL}/{platform}/catalog.bin";
-    }
 
     private INetworkSystem networkSystem;
     private IDataManager dataManager;
-    private ILobbyView lobbyView;
-    private ILoadingView loadingView;
+    private LobbyView lobbyView;
+    private LoadingView loadingView;
 
-    private async Task<string> LoadJsonFromURL(string url)
+    // ──────────────────────────────────────────────
+    // 생명주기
+    // ──────────────────────────────────────────────
+
+    private void Awake()
     {
-        using var request = UnityWebRequest.Get(url);
-        var operation = request.SendWebRequest();
-
-        while (!operation.isDone)
-            await Task.Yield();
-
-        if (request.result != UnityWebRequest.Result.Success)
-            Debug.LogError($"Error: {request.error}");
-
-        return request.downloadHandler.text;
+        // 동기 가능한 초기화만 Awake에서 처리
+        // ViewManager 등 다른 오브젝트의 Awake가 아직 실행 중일 수 있으므로
+        // 시스템 등록만 처리하고 View 접근은 하지 않음
+        SystemsManager.Initialize().GetAwaiter().GetResult();
+        networkSystem = SystemsManager.Get<INetworkSystem>();
+        dataManager   = SystemsManager.Get<IDataManager>();
+        jsonDatas.ForEach(json => dataManager.SetData(json.name, json.text));
     }
+
+    private void Start()
+    {
+        // 모든 오브젝트의 Awake()가 끝난 뒤 실행되므로
+        // ViewManager.Instance가 보장된 시점
+        _ = InitializeAsync();
+    }
+
+    // ──────────────────────────────────────────────
+    // 메인 초기화 플로우
+    // ──────────────────────────────────────────────
+
+    private async Task InitializeAsync()
+    {
+        try
+        {
+            loadingView = ViewManager.Instance.Show<LoadingView>();
+            lobbyView   = ViewManager.Instance.Get<LobbyView>();
+
+            // 로딩 완료 후 로비로 전환
+            loadingView.SetOnCompleteAction(() =>
+            {
+                lobbyView.Show();
+                loadingView.Hide();
+            });
+
+            loadingView.Show();
+
+            await RunStepsAsync(new InitStep[]
+            {
+                new ("에셋 시스템 초기화 중...",    () => InitializeAddressables()),
+                new ("에셋 카탈로그 로드 중...",    () => LoadRemoteCatalog()),
+                new ("에셋 카탈로그 업데이트 중...", () => UpdateCatalog()),
+                new ("로그인 중...",               () => networkSystem.Login("7789B", "42779113-0012-58F2-939B-0870AFAE582E")),
+                new ("스크립트 실행 중...",         () => networkSystem.ExecuteScript("Test")),
+                new ("타이틀 데이터 로드 중...",    () => networkSystem.TitleData()),
+                new ("유저 데이터 로드 중...",      () => networkSystem.UserData()),
+                new ("인벤토리 로드 중...",         () => networkSystem.Inventory()),
+            });
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[InitController] 초기화 실패: {e.Message}");
+            // TODO: 에러 팝업 표시 또는 재시도 UI
+        }
+    }
+
+    // ──────────────────────────────────────────────
+    // 스텝 실행 (진행률 자동 계산)
+    // ──────────────────────────────────────────────
+
+    private async Task RunStepsAsync(InitStep[] steps)
+    {
+        for (int i = 0; i < steps.Length; i++)
+        {
+            var step = steps[i];
+            Debug.Log($"[Init] {step.Label}");
+
+            //loadingView.SetLabel(step.Label);
+
+            await step.Action();
+
+            float progress = (float)(i + 1) / steps.Length * 100f;
+            loadingView.SetValue(progress);
+        }
+    }
+
+    // ──────────────────────────────────────────────
+    // Addressables
+    // ──────────────────────────────────────────────
 
     private async Task InitializeAddressables()
     {
         try
         {
             await Addressables.InitializeAsync().Task;
-            Debug.Log("Addressables 초기화 완료");
+            Debug.Log("[Init] Addressables 초기화 완료");
         }
         catch (Exception e)
         {
@@ -73,15 +117,17 @@ public class InitController : MonoBehaviour
 
     private async Task LoadRemoteCatalog()
     {
-        if (string.IsNullOrEmpty(GetCatalogURL()))
+        string url = GetCatalogURL();
+
+        if (string.IsNullOrEmpty(url))
         {
-            Debug.LogWarning("remoteCatalogURL이 비어있습니다.");
+            Debug.LogWarning("[Init] remoteCatalogURL이 비어있습니다.");
             return;
         }
 
         try
         {
-            var handle = Addressables.LoadContentCatalogAsync(GetCatalogURL(), false);
+            var handle = Addressables.LoadContentCatalogAsync(url, false);
             await handle.Task;
 
             if (handle.Status != AsyncOperationStatus.Succeeded)
@@ -92,7 +138,7 @@ public class InitController : MonoBehaviour
             }
 
             Addressables.Release(handle);
-            Debug.Log($"원격 카탈로그 로드 완료: {GetCatalogURL()}");
+            Debug.Log($"[Init] 원격 카탈로그 로드 완료: {url}");
         }
         catch (Exception e)
         {
@@ -110,7 +156,7 @@ public class InitController : MonoBehaviour
             if (checkHandle.Status != AsyncOperationStatus.Succeeded)
             {
                 Addressables.Release(checkHandle);
-                Debug.LogWarning("카탈로그 업데이트 확인 실패 - 기존 카탈로그로 진행합니다.");
+                Debug.LogWarning("[Init] 카탈로그 업데이트 확인 실패 - 기존 카탈로그로 진행합니다.");
                 return;
             }
 
@@ -119,11 +165,11 @@ public class InitController : MonoBehaviour
 
             if (catalogsToUpdate == null || catalogsToUpdate.Count == 0)
             {
-                Debug.Log("업데이트할 카탈로그 없음");
+                Debug.Log("[Init] 업데이트할 카탈로그 없음");
                 return;
             }
 
-            Debug.Log($"카탈로그 업데이트 대상: {catalogsToUpdate.Count}개");
+            Debug.Log($"[Init] 카탈로그 업데이트 대상: {catalogsToUpdate.Count}개");
 
             var updateHandle = Addressables.UpdateCatalogs(catalogsToUpdate, false);
             await updateHandle.Task;
@@ -136,7 +182,7 @@ public class InitController : MonoBehaviour
             }
 
             Addressables.Release(updateHandle);
-            Debug.Log("카탈로그 업데이트 완료");
+            Debug.Log("[Init] 카탈로그 업데이트 완료");
         }
         catch (Exception e)
         {
@@ -144,52 +190,64 @@ public class InitController : MonoBehaviour
         }
     }
 
-    private async void Awake()
+    // ──────────────────────────────────────────────
+    // URL 헬퍼
+    // ──────────────────────────────────────────────
+
+    private string GetCatalogURL()
     {
-        await SystemsManager.Initialize();
-        await ViewManager.Initialize();
-        networkSystem = SystemsManager.Get<INetworkSystem>();
-        dataManager = SystemsManager.Get<IDataManager>();
-        loadingView = ViewManager.Get<ILoadingView>();
-        lobbyView = ViewManager.Get<ILobbyView>();
-        jsonDatas.ForEach(json => { dataManager.SetData(json.name, json.text); });
+        const string baseURL = "https://pub-33d511a0e8b74d2e855de0befcdd341f.r2.dev";
 
-        loadingView.SetOnCompleteAction(() =>
+#if UNITY_EDITOR
+  #if UNITY_EDITOR_WIN
+        const string platform = "StandaloneWindows64";
+  #elif UNITY_EDITOR_OSX
+        const string platform = "StandaloneOSX";
+  #else
+        const string platform = "StandaloneLinux64";
+  #endif
+#elif UNITY_ANDROID
+        const string platform = "Android";
+#elif UNITY_IOS
+        const string platform = "iOS";
+#elif UNITY_WEBGL
+        const string platform = "WebGL";
+#elif UNITY_STANDALONE_OSX
+        const string platform = "StandaloneOSX";
+#else
+        const string platform = "StandaloneWindows64";
+#endif
+
+        return $"{baseURL}/{platform}/catalog.bin";
+    }
+
+    private async Task<string> LoadJsonFromURL(string url)
+    {
+        using var request = UnityWebRequest.Get(url);
+        var operation = request.SendWebRequest();
+
+        while (!operation.isDone)
+            await Task.Yield();
+
+        if (request.result != UnityWebRequest.Result.Success)
+            Debug.LogError($"[Init] JSON 로드 실패: {request.error}");
+
+        return request.downloadHandler.text;
+    }
+
+    // ──────────────────────────────────────────────
+    // 내부 타입
+    // ──────────────────────────────────────────────
+
+    private readonly struct InitStep
+    {
+        public string Label      { get; }
+        public Func<Task> Action { get; }
+
+        public InitStep(string label, Func<Task> action)
         {
-            lobbyView.Display();
-            loadingView.Hide();
-        });
-
-        var tasks = new (Func<Task> action, string label, bool countProgress)[]
-        {
-            (() =>
-            {
-                loadingView.Display();
-                return Task.CompletedTask;
-            }, "로딩 시작...", false),
-            (() => InitializeAddressables(), "에셋 시스템 초기화 중...", true),
-            (() => LoadRemoteCatalog(), "에셋 카탈로그 로드 중...", true),
-            (() => UpdateCatalog(), "에셋 카탈로그 업데이트 중...", true),
-            (() => networkSystem.Login("7789B", "42779113-0012-58F2-939B-0870AFAE582E"), "로그인 중...", true),
-            (() => networkSystem.ExecuteScript("Test"), "스크립트 실행 중...", true),
-            (() => networkSystem.TitleData(), "타이틀 데이터 로드 중...", true),
-            (() => networkSystem.UserData(), "유저 데이터 로드 중...", true),
-            (() => networkSystem.Inventory(), "인벤토리 로드 중...", true),
-        };
-
-        int totalCount = tasks.Count(t => t.countProgress);
-        int doneCount = 0;
-
-        foreach (var task in tasks)
-        {
-            Debug.Log(task.label);
-            await task.action();
-
-            if (task.countProgress)
-            {
-                doneCount++;
-                loadingView.SetValue((float) doneCount / totalCount * 100f);
-            }
+            Label  = label;
+            Action = action;
         }
     }
 }

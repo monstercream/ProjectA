@@ -1,29 +1,32 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using DG.Tweening;
 using JsonModel;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class StageSelectionView : MonoBehaviour, IStageSelectionView
+public class StageSelectionView : BaseView
 {
     [SerializeField] private StageSelectionListItem stageSelectionListItem;
     [SerializeField] private Transform content;
     [SerializeField] private Button backButton;
-    private ILobbyView lobbyView;
+    private LobbyView lobbyView;
     private IDataManager dataManager;
     private Dictionary<string, StageModel> stageModels;
     private IAddressableManager addressableManager;
-    private IIngameView ingameView;
+    private IngameView ingameView;
 
     public void Dispose()
     {
 
     }
 
-    public void Display()
+    public override void Show()
     {
-        gameObject.SetActive(true);
+        base.Show();
+        transform.DOLocalMoveY(-2000, 0);
+        transform.DOLocalMoveY(0, 0.3f);
     }
 
     public void Hide()
@@ -34,15 +37,15 @@ public class StageSelectionView : MonoBehaviour, IStageSelectionView
     public async Task Start()
     {
         Debug.Log("StageSelectionView Start");
-        lobbyView = ViewManager.Get<ILobbyView>();
-        ingameView = ViewManager.Get<IIngameView>();
+        lobbyView = ViewManager.Instance.Show<LobbyView>();
+        ingameView = ViewManager.Instance.Show<IngameView>();
         dataManager = SystemsManager.Get<IDataManager>();
         addressableManager = SystemsManager.Get<IAddressableManager>();
         stageModels = dataManager.GetDataDictionary<StageModel>("stage");
 
         backButton.onClick.AddListener(() =>
         {
-            lobbyView.Display();
+            lobbyView.Show();
             Hide();
         });
 
@@ -61,7 +64,7 @@ public class StageSelectionView : MonoBehaviour, IStageSelectionView
     private async void OnClickedListItem(StageModel model)
     {
         await ingameView.Initialize(model);
-        ingameView.Display();
+        ingameView.Show();
         Hide();
     }
 }

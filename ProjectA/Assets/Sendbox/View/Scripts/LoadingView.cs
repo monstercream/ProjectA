@@ -1,9 +1,10 @@
 using System;
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class LoadingView : MonoBehaviour, ILoadingView
+public class LoadingView : BaseView
 {
     [SerializeField] private TMP_Text loadingText;
     [SerializeField] private Slider loadingSlider;
@@ -18,7 +19,7 @@ public class LoadingView : MonoBehaviour, ILoadingView
         if (!Mathf.Approximately(loadingSlider.value, targetValue))
         {
             loadingSlider.value = Mathf.MoveTowards(loadingSlider.value, targetValue, Time.deltaTime * smoothSpeed);
-            loadingText.text = $"{(int)loadingSlider.value}%";
+            loadingText.text = $"{(int) loadingSlider.value}%";
         }
         else if (targetValue >= 100f && !isComplete)
         {
@@ -39,10 +40,12 @@ public class LoadingView : MonoBehaviour, ILoadingView
         throw new System.NotImplementedException();
     }
 
-    public void Display()
+    public override void Show()
     {
         isComplete = false;
-        gameObject.SetActive(true);
+        base.Show();
+        transform.DOLocalMoveY(-2000, 0);
+        transform.DOLocalMoveY(0, 0.3f);
     }
 
     public void Hide()

@@ -1,8 +1,9 @@
 using System;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class PauseView : MonoBehaviour, IPauseView
+public class PauseView : BaseView
 {
     [SerializeField] private Button settingButton;
     [SerializeField] private Button resumeButton;
@@ -35,9 +36,11 @@ public class PauseView : MonoBehaviour, IPauseView
     {
     }
 
-    public void Display()
+    public override void Show()
     {
-        gameObject.SetActive(true);
+        base.Show();
+        transform.DOLocalMoveY(-2000, 0);
+        transform.DOLocalMoveY(0, 0.3f);
         Time.timeScale = 0;
     }
 

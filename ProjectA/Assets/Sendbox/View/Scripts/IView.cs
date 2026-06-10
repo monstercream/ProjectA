@@ -1,5 +1,6 @@
-public interface IView : IDisposable
+public interface IView
 {
-    public void Display();
-    public void Hide();
+    void Show();
+    void Hide();
+    bool IsVisible { get; }
 }
