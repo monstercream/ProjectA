@@ -47,10 +47,19 @@ public class InitController : MonoBehaviour
     {
         try
         {
-            loadingView = ViewManager.Instance.Show<LoadingView>();
-            lobbyView   = ViewManager.Instance.Get<LobbyView>();
+            // Instance 대신 GetOrCreate 사용 — 씬에 없으면 자동 생성됨
+            var viewManager = ViewManager.GetOrCreate();
 
-            // 로딩 완료 후 로비로 전환
+            loadingView = viewManager.Show<LoadingView>();
+            lobbyView = viewManager.Get<LobbyView>();
+
+            // null 방어: View가 씬에 없으면 명확한 에러를 내고 중단
+            if (loadingView == null || lobbyView == null)
+            {
+                Debug.LogError("[InitController] LoadingView 또는 LobbyView가 씬에 존재하지 않습니다.");
+                return;
+            }
+
             loadingView.SetOnCompleteAction(() =>
             {
                 lobbyView.Show();
@@ -61,20 +70,22 @@ public class InitController : MonoBehaviour
 
             await RunStepsAsync(new InitStep[]
             {
-                new ("에셋 시스템 초기화 중...",    () => InitializeAddressables()),
-                new ("에셋 카탈로그 로드 중...",    () => LoadRemoteCatalog()),
-                new ("에셋 카탈로그 업데이트 중...", () => UpdateCatalog()),
-                new ("로그인 중...",               () => networkSystem.Login("7789B", "42779113-0012-58F2-939B-0870AFAE582E")),
-                new ("스크립트 실행 중...",         () => networkSystem.ExecuteScript("Test")),
-                new ("타이틀 데이터 로드 중...",    () => networkSystem.TitleData()),
-                new ("유저 데이터 로드 중...",      () => networkSystem.UserData()),
-                new ("인벤토리 로드 중...",         () => networkSystem.Inventory()),
+                new("에셋 시스템 초기화 중...", () => InitializeAddressables()),
+                new("에셋 카탈로그 로드 중...", () => LoadRemoteCatalog()),
+                new("에셋 카탈로그 업데이트 중...", () => UpdateCatalog()),
+                new("로그인 중...", () => networkSystem.Login("7789B", "42779113-0012-58F2-939B-0870AFAE582E")),
+                new("스크립트 실행 중...", () => networkSystem.ExecuteScript("Test")),
+                new("타이틀 데이터 로드 중...", () => networkSystem.TitleData()),
+                new("유저 데이터 로드 중...", () => networkSystem.UserData()),
+                new("인벤토리 로드 중...", () => networkSystem.Inventory()),
             });
         }
         catch (Exception e)
         {
-            Debug.LogError($"[InitController] 초기화 실패: {e.Message}");
-            // TODO: 에러 팝업 표시 또는 재시도 UI
+            // e.Message만 찍으면 발생 위치를 알 수 없음
+            // LogException은 전체 스택 트레이스를 출력해서
+            // NRE가 발생한 정확한 파일/줄 번호를 보여줌
+            Debug.LogException(e);
         }
     }
 

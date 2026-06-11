@@ -24,14 +24,12 @@ public class SystemPopupView : BaseView
     public override void Show()
     {
         base.Show();
-        transform.DOLocalMoveY(-2000, 0);
-        transform.DOLocalMoveY(0, 0.3f);
         rectTransform.anchoredPosition = originPosition + Vector2.up * slideDistance;
         rectTransform.DOAnchorPos(originPosition, animDuration).SetEase(Ease.OutBack);
     }
 
-
-    public void Hide()
+    // override로 변경 — 이제 BaseView 타입으로 호출해도 애니메이션 Hide가 실행됨
+    public override void Hide()
     {
         rectTransform.DOAnchorPos(originPosition - Vector2.up * slideDistance, animDuration)
             .SetEase(Ease.InBack)
@@ -42,6 +40,9 @@ public class SystemPopupView : BaseView
     {
         titleText.text = title;
         messageText.text = message;
+
+        // 리스너 중복 등록 방지
+        confirmButton.onClick.RemoveAllListeners();
         confirmButton.onClick.AddListener(() =>
         {
             onConfirm?.Invoke();
@@ -49,9 +50,8 @@ public class SystemPopupView : BaseView
         });
     }
 
-    public void Dispose()
+    private void OnDestroy()
     {
         rectTransform.DOKill();
-        Destroy(gameObject);
     }
 }

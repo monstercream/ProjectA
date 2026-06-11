@@ -18,8 +18,9 @@ public class LoadingView : BaseView
     {
         if (!Mathf.Approximately(loadingSlider.value, targetValue))
         {
-            loadingSlider.value = Mathf.MoveTowards(loadingSlider.value, targetValue, Time.deltaTime * smoothSpeed);
-            loadingText.text = $"{(int) loadingSlider.value}%";
+            loadingSlider.value = Mathf.MoveTowards(
+                loadingSlider.value, targetValue, Time.deltaTime * smoothSpeed);
+            loadingText.text = $"{(int)loadingSlider.value}%";
         }
         else if (targetValue >= 100f && !isComplete)
         {
@@ -35,26 +36,27 @@ public class LoadingView : BaseView
         onCompleteAction = onComplete;
     }
 
-    public void Dispose()
+    public void SetValue(float value)
     {
-        throw new System.NotImplementedException();
+        targetValue = value;
     }
 
     public override void Show()
     {
+        // 재사용 대비 상태 초기화
         isComplete = false;
+        targetValue = 0f;
+        loadingSlider.value = 0f;
+        loadingText.text = "0%";
+
         base.Show();
         transform.DOLocalMoveY(-2000, 0);
         transform.DOLocalMoveY(0, 0.3f);
     }
 
-    public void Hide()
+    // override로 변경 + NotImplementedException 던지던 Dispose 제거
+    public override void Hide()
     {
-        gameObject.SetActive(false);
-    }
-
-    public void SetValue(float value)
-    {
-        targetValue = value;
+        base.Hide();
     }
 }

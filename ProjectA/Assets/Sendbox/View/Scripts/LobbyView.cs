@@ -1,4 +1,3 @@
-using System.Threading.Tasks;
 using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
@@ -10,7 +9,6 @@ public class LobbyView : BaseView
     [SerializeField] private Button skillButton;
     [SerializeField] private Button charactersButton;
     [SerializeField] private Button profileButton;
-
     [SerializeField] private Button battleButton;
     [SerializeField] private Button optionButton;
 
@@ -22,24 +20,25 @@ public class LobbyView : BaseView
     private OptionView optionView;
     private StageSelectionView stageSelectionView;
 
-    public override void Show()
+    // async Task Start() → void Start()
+    // Show가 아니라 Get으로 참조만 가져온다 (시작 시 전부 열리는 문제 해결)
+    private void Start()
     {
-        base.Show();
-        transform.DOLocalMoveY(-2000, 0);
-        transform.DOLocalMoveY(0, 0.3f);
-    }
+        systemPopupView    = ViewManager.Instance.Get<SystemPopupView>();
+        inventoryView      = ViewManager.Instance.Get<InventoryView>();
+        shopView           = ViewManager.Instance.Get<ShopView>();
+        skillView          = ViewManager.Instance.Get<SkillView>();
+        charactersView     = ViewManager.Instance.Get<CharactersView>();
+        optionView         = ViewManager.Instance.Get<OptionView>();
+        stageSelectionView = ViewManager.Instance.Get<StageSelectionView>();
 
-    public void Hide() => gameObject.SetActive(false);
-
-    public async Task Start()
-    {
-        systemPopupView = ViewManager.Instance.Show<SystemPopupView>();
-        inventoryView = ViewManager.Instance.Show<InventoryView>();
-        shopView = ViewManager.Instance.Show<ShopView>();
-        skillView = ViewManager.Instance.Show<SkillView>();
-        charactersView = ViewManager.Instance.Show<CharactersView>();
-        optionView = ViewManager.Instance.Show<OptionView>();
-        stageSelectionView = ViewManager.Instance.Show<StageSelectionView>();
+        // null 방어 — View가 등록 안 된 경우 명확한 에러 후 중단
+        if (inventoryView == null || shopView == null || skillView == null ||
+            charactersView == null || optionView == null || stageSelectionView == null)
+        {
+            Debug.LogError("[LobbyView] 일부 View가 ViewManager에 등록되지 않았습니다.");
+            return;
+        }
 
         inventoryButton.onClick.AddListener(inventoryView.Show);
         shopButton.onClick.AddListener(shopView.Show);
@@ -53,8 +52,16 @@ public class LobbyView : BaseView
         });
     }
 
-    public void Dispose()
+    public override void Show()
     {
-        Destroy(gameObject);
+        base.Show();
+        transform.DOLocalMoveY(-2000, 0);
+        transform.DOLocalMoveY(0, 0.3f);
+    }
+
+    // override로 변경 (shadowing 제거)
+    public override void Hide()
+    {
+        base.Hide();
     }
 }
