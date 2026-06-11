@@ -1461,6 +1461,23 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 2b53e5c0051c741aab77e912200e430b, type: 3}
+--- !u!1 &112337728 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3078879745129114313, guid: e6996c358d67b4e09a0dcf105b3a261e, type: 3}
+  m_PrefabInstance: {fileID: 1493924539}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &112337733
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 112337728}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 492659ae710e940b6ad795712faaaaae, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TouchButton
 --- !u!1 &158440342
 GameObject:
   m_ObjectHideFlags: 0
@@ -5151,6 +5168,23 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 5f9deec5fb94a4793b8ad109256eefbf, type: 3}
+--- !u!1 &580626014 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6693267213381722850, guid: e6996c358d67b4e09a0dcf105b3a261e, type: 3}
+  m_PrefabInstance: {fileID: 1493924539}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &580626019
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 580626014}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 492659ae710e940b6ad795712faaaaae, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TouchButton
 --- !u!224 &623684508 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 506993677292111695, guid: 5ea44e181623d406dad42a36e63cbbd8, type: 3}
@@ -5161,6 +5195,23 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 2883537032258494172, guid: cc7ade150104c461cbc2c73bf4b89d68, type: 3}
   m_PrefabInstance: {fileID: 804394083}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &705543913 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7419354190622559880, guid: e6996c358d67b4e09a0dcf105b3a261e, type: 3}
+  m_PrefabInstance: {fileID: 1493924539}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &705543918
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 705543913}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 492659ae710e940b6ad795712faaaaae, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TouchButton
 --- !u!1001 &804394083
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -7782,6 +7833,23 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 2122647371757421851, guid: ff0a627e68682481c910ab86993b01a1, type: 3}
   m_PrefabInstance: {fileID: 1467907010}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1432044704 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2684770802741459467, guid: e6996c358d67b4e09a0dcf105b3a261e, type: 3}
+  m_PrefabInstance: {fileID: 1493924539}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1432044709
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1432044704}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 492659ae710e940b6ad795712faaaaae, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TouchButton
 --- !u!224 &1467523786 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 792684376780579336, guid: e6996c358d67b4e09a0dcf105b3a261e, type: 3}
@@ -7972,6 +8040,22 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1281211342839668084, guid: e6996c358d67b4e09a0dcf105b3a261e, type: 3}
+      propertyPath: BrakeButton
+      value: 
+      objectReference: {fileID: 705543918}
+    - target: {fileID: 1281211342839668084, guid: e6996c358d67b4e09a0dcf105b3a261e, type: 3}
+      propertyPath: AccelateButton
+      value: 
+      objectReference: {fileID: 1432044709}
+    - target: {fileID: 1281211342839668084, guid: e6996c358d67b4e09a0dcf105b3a261e, type: 3}
+      propertyPath: SteerLeftButton
+      value: 
+      objectReference: {fileID: 112337733}
+    - target: {fileID: 1281211342839668084, guid: e6996c358d67b4e09a0dcf105b3a261e, type: 3}
+      propertyPath: SteerRightButton
+      value: 
+      objectReference: {fileID: 580626019}
     - target: {fileID: 7123362869054847818, guid: e6996c358d67b4e09a0dcf105b3a261e, type: 3}
       propertyPath: m_Name
       value: IngameView
@@ -7983,7 +8067,19 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2684770802741459467, guid: e6996c358d67b4e09a0dcf105b3a261e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1432044709}
+    - targetCorrespondingSourceObject: {fileID: 7419354190622559880, guid: e6996c358d67b4e09a0dcf105b3a261e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 705543918}
+    - targetCorrespondingSourceObject: {fileID: 3078879745129114313, guid: e6996c358d67b4e09a0dcf105b3a261e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 112337733}
+    - targetCorrespondingSourceObject: {fileID: 6693267213381722850, guid: e6996c358d67b4e09a0dcf105b3a261e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 580626019}
   m_SourcePrefab: {fileID: 100100000, guid: e6996c358d67b4e09a0dcf105b3a261e, type: 3}
 --- !u!1 &1877044813
 GameObject:

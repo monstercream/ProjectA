@@ -58,10 +58,4 @@ public class LobbyView : BaseView
         transform.DOLocalMoveY(-2000, 0);
         transform.DOLocalMoveY(0, 0.3f);
     }
-
-    // override로 변경 (shadowing 제거)
-    public override void Hide()
-    {
-        base.Hide();
-    }
 }

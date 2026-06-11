@@ -17,11 +17,6 @@ public class StageSelectionView : BaseView
     private IAddressableManager addressableManager;
     private IngameView ingameView;
 
-    public void Dispose()
-    {
-
-    }
-
     public override void Show()
     {
         base.Show();

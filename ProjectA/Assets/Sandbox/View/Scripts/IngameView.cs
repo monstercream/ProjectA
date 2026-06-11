@@ -1,6 +1,5 @@
 using System;
 using System.Threading.Tasks;
-using DG.Tweening;
 using JsonModel;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -8,12 +7,35 @@ using UnityEngine.UI;
 
 public class IngameView : BaseView
 {
-    [SerializeField] private Button AccelateButton;
-    [SerializeField] private Button BrakeButton;
-    [SerializeField] private Button SteerLeftButton;
-    [SerializeField] private Button SteerRightButton;
+    [Header("Hold Buttons (누르고 있는 동안 입력)")]
+    [SerializeField] private TouchButton AccelateButton;
+    [SerializeField] private TouchButton BrakeButton;
+    [SerializeField] private TouchButton SteerLeftButton;
+    [SerializeField] private TouchButton SteerRightButton;
+
+    [Header("Click Buttons (한 번 누름)")]
     [SerializeField] private Button PauseButton;
     [SerializeField] private Button CameraButton;
+
+    // ──────────────────────────────────────────────
+    // 입력 상태 (다른 컴포넌트가 매 프레임 읽어감)
+    // ──────────────────────────────────────────────
+
+    /// <summary>-1(좌) ~ +1(우). 양쪽 동시 누름은 0.</summary>
+    public float Horizontal { get; private set; }
+
+    /// <summary>가속 입력 중인지 (터치 or 키보드 ↑/W).</summary>
+    public bool IsAccelerating { get; private set; }
+
+    /// <summary>브레이크 입력 중인지 (터치 or 키보드 ↓/S).</summary>
+    public bool IsBraking { get; private set; }
+
+    public bool IsLeftHeld { get; private set; }
+    public bool IsRightHeld { get; private set; }
+
+    // ──────────────────────────────────────────────
+    // 의존성 & 상태
+    // ──────────────────────────────────────────────
 
     private ICameraSystem cameraSystem;
     private IAddressableManager addressableManager;
@@ -29,10 +51,6 @@ public class IngameView : BaseView
 
     private int cameraPresetIndex = 0;
 
-    private InputAction accelerateAction;
-    private InputAction brakeAction;
-    private InputAction steerLeftAction;
-    private InputAction steerRightAction;
     private PauseView pauseView;
     private LobbyView lobbyView;
     private GameObject stage;
@@ -40,32 +58,88 @@ public class IngameView : BaseView
     private GameObject miniMap;
     private StageModel stageModel;
 
+    private Keyboard keyboard;
+
+    // ──────────────────────────────────────────────
+    // 생명주기
+    // ──────────────────────────────────────────────
+
     public async Task Initialize(StageModel model)
     {
         addressableManager = SystemsManager.Get<IAddressableManager>();
-        cameraSystem = SystemsManager.Get<ICameraSystem>();
-        pauseView = ViewManager.Instance.Show<PauseView>();
-        lobbyView = ViewManager.Instance.Show<LobbyView>();
+        cameraSystem       = SystemsManager.Get<ICameraSystem>();
+        pauseView          = ViewManager.Instance.Get<PauseView>();
+        lobbyView          = ViewManager.Instance.Get<LobbyView>();
+        keyboard           = Keyboard.current;
+
         stageModel = model;
         pauseView.Initialize(Resume, Restart, Quit);
-        
-        RegisterButtonEvents();
+
+        RegisterClickEvents();
         await RaceSetting(model);
     }
 
+    private void Update()
+    {
+        // 활성 상태일 때만 입력 처리 (Pause 중엔 동작 안 함)
+        if (!IsVisible) return;
+
+        UpdateInput();
+    }
+
+    // ──────────────────────────────────────────────
+    // 입력 통합 — 키보드 + 터치
+    // ──────────────────────────────────────────────
+
+    private void UpdateInput()
+    {
+        // 키보드 입력
+        bool keyLeft = keyboard != null &&
+                       (keyboard.leftArrowKey.isPressed || keyboard.aKey.isPressed);
+        bool keyRight = keyboard != null &&
+                        (keyboard.rightArrowKey.isPressed || keyboard.dKey.isPressed);
+        bool keyAccel = keyboard != null &&
+                        (keyboard.upArrowKey.isPressed || keyboard.wKey.isPressed);
+        bool keyBrake = keyboard != null &&
+                        (keyboard.downArrowKey.isPressed || keyboard.sKey.isPressed);
+
+        // 터치 입력
+        bool touchLeft  = SteerLeftButton  != null && SteerLeftButton.IsPressed;
+        bool touchRight = SteerRightButton != null && SteerRightButton.IsPressed;
+        bool touchAccel = AccelateButton   != null && AccelateButton.IsPressed;
+        bool touchBrake = BrakeButton      != null && BrakeButton.IsPressed;
+
+        // 통합
+        IsLeftHeld     = keyLeft  || touchLeft;
+        IsRightHeld    = keyRight || touchRight;
+        IsAccelerating = keyAccel || touchAccel;
+        IsBraking      = keyBrake || touchBrake;
+
+        // Horizontal 계산
+        float h = 0f;
+        if (IsLeftHeld)  h -= 1f;
+        if (IsRightHeld) h += 1f;
+        Horizontal = h;
+    }
+
+    // ──────────────────────────────────────────────
+    // 스테이지 로드 / 해제
+    // ──────────────────────────────────────────────
+
     private async Task RaceSetting(StageModel model)
     {
-        Vector3 startPos = model.StartPosition.ToVector3();
+        Vector3 startPos    = model.StartPosition.ToVector3();
         Quaternion startRot = Quaternion.Euler(model.StartRotation.ToVector3());
 
-        stage = await addressableManager.InstantiateAsync(model.PrefabPath);
-        car = await addressableManager.InstantiateAsync("Car", startPos, startRot);
+        stage   = await addressableManager.InstantiateAsync(model.PrefabPath);
+        car     = await addressableManager.InstantiateAsync("Car", startPos, startRot);
         miniMap = await addressableManager.InstantiateAsync("MiniMap");
 
         carTransform = car.transform;
         cameraSystem.ChaseTarget(carTransform, 5, 1, 20, 20);
         miniMap.GetComponent<MinimapSystem>().SetTarget(carTransform);
     }
+
     private async Task RaceFinished()
     {
         await addressableManager.ReleaseInstanceAsync(stage);
@@ -77,34 +151,14 @@ public class IngameView : BaseView
         miniMap = null;
     }
 
-    private void RegisterButtonEvents()
+    // ──────────────────────────────────────────────
+    // 클릭 버튼 (Pause / Camera)
+    // ──────────────────────────────────────────────
+
+    private void RegisterClickEvents()
     {
-        AccelateButton.onClick.AddListener(OnAccelateButtonClick);
-        BrakeButton.onClick.AddListener(OnBrakeButtonClick);
-        SteerLeftButton.onClick.AddListener(OnSteerLeftButtonClick);
-        SteerRightButton.onClick.AddListener(OnSteerRightButtonClick);
         PauseButton.onClick.AddListener(OnPauseButtonClick);
         CameraButton.onClick.AddListener(OnCameraButtonClick);
-    }
-
-    public void OnAccelateButtonClick()
-    {
-        // 차량 전진 처리
-    }
-
-    public void OnBrakeButtonClick()
-    {
-        // 차량 브레이크 처리
-    }
-
-    public void OnSteerLeftButtonClick()
-    {
-        // 차량 좌회전 처리
-    }
-
-    public void OnSteerRightButtonClick()
-    {
-        // 차량 우회전 처리
     }
 
     public void OnPauseButtonClick()
@@ -126,28 +180,13 @@ public class IngameView : BaseView
             preset.rotSpeed);
     }
 
-    public void Dispose()
-    {
-        accelerateAction?.Disable();
-        brakeAction?.Disable();
-        steerLeftAction?.Disable();
-        steerRightAction?.Disable();
-
-        accelerateAction?.Dispose();
-        brakeAction?.Dispose();
-        steerLeftAction?.Dispose();
-        steerRightAction?.Dispose();
-
-        AccelateButton.onClick.RemoveAllListeners();
-        BrakeButton.onClick.RemoveAllListeners();
-        SteerLeftButton.onClick.RemoveAllListeners();
-        SteerRightButton.onClick.RemoveAllListeners();
-        PauseButton.onClick.RemoveAllListeners();
-        CameraButton.onClick.RemoveAllListeners();
-    }
+    // ──────────────────────────────────────────────
+    // Pause 콜백
+    // ──────────────────────────────────────────────
 
     private void Resume()
     {
+        pauseView.Hide();
         Show();
     }
 
@@ -155,20 +194,23 @@ public class IngameView : BaseView
     {
         await RaceFinished();
         await RaceSetting(stageModel);
-        Show();
+        Resume();
     }
 
     private async void Quit()
     {
         await RaceFinished();
+        pauseView.Hide();
         lobbyView.Show();
     }
 
-    public override void Show()
+    // ──────────────────────────────────────────────
+    // 정리
+    // ──────────────────────────────────────────────
+
+    protected void OnDestroy()
     {
-        base.Show();
-        transform.DOLocalMoveY(-2000, 0);
-        transform.DOLocalMoveY(0, 0.3f);
+        PauseButton?.onClick.RemoveAllListeners();
+        CameraButton?.onClick.RemoveAllListeners();
     }
-    public void Hide() => gameObject.SetActive(false);
 }

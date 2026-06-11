@@ -6,10 +6,6 @@ public class InventoryView : BaseView
 {
     [SerializeField] private Button closeButton;
 
-    public void Dispose()
-    {
-    }
-
     private void Start()
     {
         closeButton.onClick.AddListener(Hide);

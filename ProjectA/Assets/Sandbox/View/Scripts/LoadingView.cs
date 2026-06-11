@@ -48,10 +48,7 @@ public class LoadingView : BaseView
         targetValue = 0f;
         loadingSlider.value = 0f;
         loadingText.text = "0%";
-
         base.Show();
-        transform.DOLocalMoveY(-2000, 0);
-        transform.DOLocalMoveY(0, 0.3f);
     }
 
     // override로 변경 + NotImplementedException 던지던 Dispose 제거

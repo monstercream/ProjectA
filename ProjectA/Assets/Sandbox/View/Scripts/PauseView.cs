@@ -32,15 +32,9 @@ public class PauseView : BaseView
 
     }
 
-    public void Dispose()
-    {
-    }
-
     public override void Show()
     {
         base.Show();
-        transform.DOLocalMoveY(-2000, 0);
-        transform.DOLocalMoveY(0, 0.3f);
         Time.timeScale = 0;
     }
 

@@ -5,9 +5,6 @@ using UnityEngine.UI;
 public class SkillView : BaseView
 {
     [SerializeField] private Button backButton;
-    public void Dispose()
-    {
-    }
     public override void Show()
     {
         base.Show();
