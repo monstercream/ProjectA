@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using UnityEngine;
 
 namespace System
 {
@@ -34,7 +35,12 @@ namespace System
 
 		public static T Get<T>() where T : class, ISystem
 		{
-			return (T) systems[typeof(T)] as T;
+			if (!systems.TryGetValue(typeof(T), out var system))
+			{
+				Debug.LogError($"[SystemsManager] {typeof(T).Name} not registered");
+				return null;
+			}
+			return system as T;
 		}
 
 		public static bool IsInitialized() => isInitialized;
