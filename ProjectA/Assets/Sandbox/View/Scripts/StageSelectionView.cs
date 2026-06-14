@@ -32,8 +32,8 @@ public class StageSelectionView : BaseView
     public async Task Start()
     {
         Debug.Log("StageSelectionView Start");
-        lobbyView = ViewManager.Instance.Show<LobbyView>();
-        ingameView = ViewManager.Instance.Show<IngameView>();
+        lobbyView = ViewManager.Instance.Get<LobbyView>();
+        ingameView = ViewManager.Instance.Get<IngameView>();
         dataManager = SystemsManager.Get<IDataManager>();
         addressableManager = SystemsManager.Get<IAddressableManager>();
         stageModels = dataManager.GetDataDictionary<StageModel>("stage");

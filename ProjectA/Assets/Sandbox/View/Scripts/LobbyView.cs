@@ -1,4 +1,3 @@
-using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -50,12 +49,5 @@ public class LobbyView : BaseView
             stageSelectionView.Show();
             Hide();
         });
-    }
-
-    public override void Show()
-    {
-        base.Show();
-        transform.DOLocalMoveY(-2000, 0);
-        transform.DOLocalMoveY(0, 0.3f);
     }
 }
