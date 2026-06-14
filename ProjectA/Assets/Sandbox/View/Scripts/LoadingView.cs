@@ -50,10 +50,4 @@ public class LoadingView : BaseView
         loadingText.text = "0%";
         base.Show();
     }
-
-    // override로 변경 + NotImplementedException 던지던 Dispose 제거
-    public override void Hide()
-    {
-        base.Hide();
-    }
 }

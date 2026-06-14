@@ -12,11 +12,6 @@ public class SkillView : BaseView
         transform.DOLocalMoveY(0, 0.3f);
     }
 
-    public void Hide()
-    {
-        gameObject.SetActive(false);
-    }
-
     private void Start()
     {
         backButton.onClick.AddListener(Hide);

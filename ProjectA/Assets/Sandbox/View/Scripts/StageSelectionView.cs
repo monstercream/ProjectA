@@ -52,7 +52,7 @@ public class StageSelectionView : BaseView
         foreach (var model in models)
         {
             var item = Instantiate(stageSelectionListItem, content);
-            item.Display(addressableManager, model.Value, OnClickedListItem);
+            item.Show(addressableManager, model.Value, OnClickedListItem);
         }
     }
 

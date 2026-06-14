@@ -11,7 +11,7 @@ public class StageSelectionListItem : MonoBehaviour
     [SerializeField] TMP_Text nameText;
     [SerializeField] Button button;
 
-    public async Task Display(IAddressableManager addressableManager, StageModel stageModel, Action<StageModel> onClicked)
+    public async Task Show(IAddressableManager addressableManager, StageModel stageModel, Action<StageModel> onClicked)
     {
         image.sprite = await addressableManager.LoadAssetAsync<Sprite>(stageModel.ImagePath);
         nameText.text = stageModel.Name;
