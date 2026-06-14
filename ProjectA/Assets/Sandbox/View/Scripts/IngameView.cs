@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using JsonModel;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.UI;
 
 public class IngameView : BaseView
@@ -17,27 +18,17 @@ public class IngameView : BaseView
     [SerializeField] private Button PauseButton;
     [SerializeField] private Button CameraButton;
 
-    // ──────────────────────────────────────────────
-    // 입력 상태 (다른 컴포넌트가 매 프레임 읽어감)
-    // ──────────────────────────────────────────────
-
-    /// <summary>-1(좌) ~ +1(우). 양쪽 동시 누름은 0.</summary>
-    public float Horizontal { get; private set; }
-
-    /// <summary>가속 입력 중인지 (터치 or 키보드 ↑/W).</summary>
-    public bool IsAccelerating { get; private set; }
-
-    /// <summary>브레이크 입력 중인지 (터치 or 키보드 ↓/S).</summary>
-    public bool IsBraking { get; private set; }
-
-    public bool IsLeftHeld { get; private set; }
-    public bool IsRightHeld { get; private set; }
+    [Header("Virtual Keyboard Keys (터치 시 시뮬레이션할 키)")]
+    [SerializeField] private Key accelerateKey = Key.UpArrow;
+    [SerializeField] private Key brakeKey      = Key.DownArrow;
+    [SerializeField] private Key steerLeftKey  = Key.LeftArrow;
+    [SerializeField] private Key steerRightKey = Key.RightArrow;
 
     // ──────────────────────────────────────────────
     // 의존성 & 상태
     // ──────────────────────────────────────────────
 
-    private ICameraSystem cameraSystem;
+    private ICameraSystem      cameraSystem;
     private IAddressableManager addressableManager;
     private Transform carTransform;
 
@@ -60,6 +51,9 @@ public class IngameView : BaseView
 
     private Keyboard keyboard;
 
+    // 이전 프레임의 터치 상태 — 변경된 순간만 가상 키 이벤트 발행
+    private bool prevAccel, prevBrake, prevLeft, prevRight;
+
     // ──────────────────────────────────────────────
     // 생명주기
     // ──────────────────────────────────────────────
@@ -72,6 +66,9 @@ public class IngameView : BaseView
         lobbyView          = ViewManager.Instance.Get<LobbyView>();
         keyboard           = Keyboard.current;
 
+        if (keyboard == null)
+            Debug.LogError("[IngameView] Keyboard.current가 null입니다. Input System 설정을 확인하세요.");
+
         stageModel = model;
         pauseView.Initialize(Resume, Restart, Quit);
 
@@ -81,45 +78,60 @@ public class IngameView : BaseView
 
     private void Update()
     {
-        // 활성 상태일 때만 입력 처리 (Pause 중엔 동작 안 함)
         if (!IsVisible) return;
 
-        UpdateInput();
+        // 터치 버튼 상태를 가상 키보드 입력으로 변환
+        SyncTouchToKeyboard();
     }
 
     // ──────────────────────────────────────────────
-    // 입력 통합 — 키보드 + 터치
+    // 가상 키보드 — 터치 버튼 → 키보드 키 이벤트 주입
+    // 이렇게 하면 기존 InputAction 바인딩(키보드 ←/→ 등)이 그대로 동작
     // ──────────────────────────────────────────────
 
-    private void UpdateInput()
+    private void SyncTouchToKeyboard()
     {
-        // 키보드 입력
-        bool keyLeft = keyboard != null &&
-                       (keyboard.leftArrowKey.isPressed || keyboard.aKey.isPressed);
-        bool keyRight = keyboard != null &&
-                        (keyboard.rightArrowKey.isPressed || keyboard.dKey.isPressed);
-        bool keyAccel = keyboard != null &&
-                        (keyboard.upArrowKey.isPressed || keyboard.wKey.isPressed);
-        bool keyBrake = keyboard != null &&
-                        (keyboard.downArrowKey.isPressed || keyboard.sKey.isPressed);
+        if (keyboard == null) return;
 
-        // 터치 입력
-        bool touchLeft  = SteerLeftButton  != null && SteerLeftButton.IsPressed;
-        bool touchRight = SteerRightButton != null && SteerRightButton.IsPressed;
-        bool touchAccel = AccelateButton   != null && AccelateButton.IsPressed;
-        bool touchBrake = BrakeButton      != null && BrakeButton.IsPressed;
+        UpdateKey(SteerLeftButton,  steerLeftKey,  ref prevLeft);
+        UpdateKey(SteerRightButton, steerRightKey, ref prevRight);
+        UpdateKey(AccelateButton,   accelerateKey, ref prevAccel);
+        UpdateKey(BrakeButton,      brakeKey,      ref prevBrake);
+    }
 
-        // 통합
-        IsLeftHeld     = keyLeft  || touchLeft;
-        IsRightHeld    = keyRight || touchRight;
-        IsAccelerating = keyAccel || touchAccel;
-        IsBraking      = keyBrake || touchBrake;
+    private void UpdateKey(TouchButton button, Key key, ref bool prevState)
+    {
+        if (button == null) return;
 
-        // Horizontal 계산
-        float h = 0f;
-        if (IsLeftHeld)  h -= 1f;
-        if (IsRightHeld) h += 1f;
-        Horizontal = h;
+        bool current = button.IsPressed;
+
+        // 상태 변경된 순간에만 이벤트 발행 (down/up)
+        if (current != prevState)
+        {
+            SendKeyEvent(key, current);
+            prevState = current;
+        }
+    }
+
+    private void SendKeyEvent(Key key, bool isPressed)
+    {
+        using (StateEvent.From(keyboard, out var eventPtr))
+        {
+            var control = keyboard[key];
+            control.WriteValueIntoEvent(isPressed ? 1f : 0f, eventPtr);
+            InputSystem.QueueEvent(eventPtr);
+        }
+    }
+
+    /// <summary>현재 눌려있는 가상 키 모두 강제 해제 (Pause/Quit 시 안전장치).</summary>
+    private void ReleaseAllVirtualKeys()
+    {
+        if (keyboard == null) return;
+
+        if (prevLeft)  { SendKeyEvent(steerLeftKey,  false); prevLeft  = false; }
+        if (prevRight) { SendKeyEvent(steerRightKey, false); prevRight = false; }
+        if (prevAccel) { SendKeyEvent(accelerateKey, false); prevAccel = false; }
+        if (prevBrake) { SendKeyEvent(brakeKey,      false); prevBrake = false; }
     }
 
     // ──────────────────────────────────────────────
@@ -163,6 +175,7 @@ public class IngameView : BaseView
 
     public void OnPauseButtonClick()
     {
+        ReleaseAllVirtualKeys();  // 일시정지 시 입력 끊기
         Hide();
         pauseView.Show();
     }
@@ -192,6 +205,7 @@ public class IngameView : BaseView
 
     private async void Restart()
     {
+        ReleaseAllVirtualKeys();
         await RaceFinished();
         await RaceSetting(stageModel);
         Resume();
@@ -199,6 +213,7 @@ public class IngameView : BaseView
 
     private async void Quit()
     {
+        ReleaseAllVirtualKeys();
         await RaceFinished();
         pauseView.Hide();
         lobbyView.Show();
@@ -208,8 +223,15 @@ public class IngameView : BaseView
     // 정리
     // ──────────────────────────────────────────────
 
+    public override void Hide()
+    {
+        ReleaseAllVirtualKeys();  // 화면 숨길 때 가상 키 해제
+        base.Hide();
+    }
+
     protected void OnDestroy()
     {
+        ReleaseAllVirtualKeys();
         PauseButton?.onClick.RemoveAllListeners();
         CameraButton?.onClick.RemoveAllListeners();
     }
