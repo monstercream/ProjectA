@@ -13,6 +13,7 @@ public class LoadingView : BaseView
     private float targetValue;
     private bool isComplete = false;
     private Action onCompleteAction;
+    private int _lastPercent = -1;
 
     private void Update()
     {
@@ -20,12 +21,18 @@ public class LoadingView : BaseView
         {
             loadingSlider.value = Mathf.MoveTowards(
                 loadingSlider.value, targetValue, Time.deltaTime * smoothSpeed);
-            loadingText.text = $"{(int)loadingSlider.value}%";
+
+            int pct = (int)loadingSlider.value;
+            if (pct != _lastPercent)                 // 값 변할 때만
+            {
+                loadingText.SetText("{0}%", pct);    // string 할당 없음
+                _lastPercent = pct;
+            }
         }
         else if (targetValue >= 100f && !isComplete)
         {
             loadingSlider.value = 100f;
-            loadingText.text = "100%";
+            loadingText.SetText("100%");
             isComplete = true;
             onCompleteAction?.Invoke();
         }
@@ -47,6 +54,7 @@ public class LoadingView : BaseView
         isComplete = false;
         targetValue = 0f;
         loadingSlider.value = 0f;
+        _lastPercent = -1;
         loadingText.text = "0%";
         base.Show();
     }

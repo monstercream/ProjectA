@@ -9,5 +9,6 @@ public class MinimapSystem : MonoBehaviour
     {
         _minimapCamera.SetTarget = target;
         _minimapIcon.SetTarget = target;
+        _minimapIcon.Initialize(_minimapCamera);   // 카메라 주입
     }
 }

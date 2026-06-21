@@ -2,39 +2,27 @@ using UnityEngine;
 
 public class MinimapIcon : MonoBehaviour
 {
-    [SerializeField] private Transform target;          // 자동차
-    [SerializeField] private RectTransform minimapRect; // 미니맵 UI 크기
-    [SerializeField] private RectTransform iconRect;    // 아이콘 UI
+    [SerializeField] private Transform target;
+    [SerializeField] private RectTransform minimapRect;
+    [SerializeField] private RectTransform iconRect;
 
-    private MinimapCamera _minimapCam;
+    private Camera _minimapCamera;   // Camera를 직접 캐싱
 
-    public Transform SetTarget
+    public Transform SetTarget { set => target = value; }
+
+    public void Initialize(MinimapCamera cam)        // 주입 + 1회 캐싱
     {
-        set => target = value;
-    }
-    private void Update()
-    {
-        if (_minimapCam == null)
-            _minimapCam = FindObjectOfType<MinimapCamera>();
+        _minimapCamera = cam.GetComponent<Camera>();
     }
 
-    private void LateUpdate()
+    private void LateUpdate()                         // Update() 통째로 제거
     {
-        if (target == null) return;
+        if (target == null || _minimapCamera == null) return;
 
-        // 월드 좌표 → 미니맵 UI 좌표 변환
-        Vector3 viewportPos = _minimapCam
-            .GetComponent<Camera>()
-            .WorldToViewportPoint(target.position);
-
+        Vector3 v = _minimapCamera.WorldToViewportPoint(target.position);
         iconRect.anchoredPosition = new Vector2(
-            (viewportPos.x - 0.5f) * minimapRect.sizeDelta.x,
-            (viewportPos.y - 0.5f) * minimapRect.sizeDelta.y
-        );
-
-        // 자동차 방향 아이콘 회전
-        iconRect.rotation = Quaternion.Euler(
-            0f, 0f, -target.eulerAngles.y
-        );
+            (v.x - 0.5f) * minimapRect.sizeDelta.x,
+            (v.y - 0.5f) * minimapRect.sizeDelta.y);
+        iconRect.rotation = Quaternion.Euler(0f, 0f, -target.eulerAngles.y);
     }
 }
