@@ -17,6 +17,10 @@ public class MinimapCamera : MonoBehaviour
     {
         camera = GetComponent<Camera>();
         camera.orthographicSize = size;
+
+        // 미니맵 카메라엔 리스너가 있으면 안 됨 (중복 방지)
+        if (TryGetComponent(out AudioListener listener))
+            listener.enabled = false;
     }
 
     private void LateUpdate()

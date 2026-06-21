@@ -34,6 +34,15 @@ public class CameraDirector : MonoBehaviour
         cam        = GetComponent<Camera>();
         currentFov = cam.fieldOfView;
         targetFov  = currentFov;
+
+        EnsureAudioListener();          // ← 추가
+    }
+    
+    private void EnsureAudioListener()
+    {
+        if (!TryGetComponent(out AudioListener listener))
+            listener = gameObject.AddComponent<AudioListener>();
+        listener.enabled = true;
     }
 
     private void LateUpdate()
