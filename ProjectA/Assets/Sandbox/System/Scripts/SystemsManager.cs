@@ -50,6 +50,7 @@ namespace System
 			Get<IDataManager>().Dispose();
 			Get<INetworkSystem>().Dispose();
 			Get<IAddressableManager>().Dispose();
+			Get<ICameraSystem>().Dispose();
 
 			systems.Clear();
 		}
